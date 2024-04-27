@@ -1,6 +1,9 @@
 require("dotenv").config();
-const { default: axios } = require("axios");
 const { Client, IntentsBitField: {Flags: IntentsFlags} } = require("discord.js");
+const { default: axios } = require("axios");
+const { launch } = require("puppeteer");
+const { wrapper } = require("axios-cookiejar-support");
+const { CookieJar } = require("tough-cookie");
 
 const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
@@ -10,7 +13,9 @@ const AMIAMI_FIGURE_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?[A-Za-z0-9_]*?co
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const instance = axios.create({
+const jar = new CookieJar();
+
+const instance = wrapper(axios.create({
     method: "GET",
     baseURL: `https://api.amiami.com/api/v1.0`,
     headers: {
@@ -27,8 +32,9 @@ const instance = axios.create({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
         "X-User-Key": "amiami_dev"
     },
-    with_credentials: true
-});
+    with_credentials: true,
+    jar,
+}));
 
 client.on("messageCreate", async message => {
     const matches = [...message.content.matchAll(AMIAMI_FIGURE_REGEX)];
@@ -83,4 +89,27 @@ client.on("messageCreate", async message => {
     }).catch(console.error);
 });
 
-client.login(process.env.DISCORD_TOKEN);
+async function main() {
+    const browser = await launch({ headless: true });
+    const page = await browser.newPage();
+
+    await page.goto("https://www.amiami.com/");
+    await page.waitForNetworkIdle();
+
+    const cookies = await page.cookies();
+
+    for (const cookie of cookies) {
+        await jar.setCookie(`${cookie.name}=${cookie.value}`, "amiami.com");
+    }
+
+    console.log(`Acquired ${cookies.length} cookies from amiami: ${cookies.map(cookie => `${cookie.name}=${cookie.value}`).join(";")}`);
+
+    await page.close();
+    await browser.close();
+
+    await client.login(process.env.DISCORD_TOKEN);
+
+    console.log(`Logged into Discord as ${client.user.tag}.`);
+}
+
+main()
