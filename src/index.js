@@ -90,7 +90,9 @@ client.on("messageCreate", async message => {
 });
 
 async function main() {
-    const browser = await launch({ headless: true });
+    const chromiumPath = process.env.CHROMIUM_PATH;
+
+    const browser = await launch({ headless: true, executablePath: chromiumPath });
     const page = await browser.newPage();
 
     await page.goto("https://www.amiami.com/");
