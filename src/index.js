@@ -114,8 +114,12 @@ function parseCode(rawCode) {
     }
 }
 
-function getImageBuffer(code, preowned, quarter) {
-    return axios.get(`https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}${preowned ? "-R" : ""}.jpg`, { responseType: "arraybuffer" }).then(res => Buffer.from(res.data, "binary"));
+function getImageBuffer(code, quarter) {
+    if (typeof code !== "string") code = String(code);
+    if (code.length < 6) code = "0".repeat(6 - code.length) + code;
+
+    const url = `https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}.jpg`;
+    return axios.get(url, { responseType: "arraybuffer" }).then(res => Buffer.from(res.data, "binary"));
 }
 
 async function guesstimateQuarter(rawCode) {
@@ -132,7 +136,7 @@ async function guesstimateQuarter(rawCode) {
         res(row)
     }));
 
-    if (existingEntry) return [existingEntry.quarter, await getImageBuffer(code, preowned, existingEntry.quarter)];
+    if (existingEntry) return [existingEntry.quarter, await getImageBuffer(code, existingEntry.quarter)];
 
 
 
@@ -183,7 +187,7 @@ async function guesstimateQuarter(rawCode) {
 
     while (guess < 16) {
         try {
-            const imageBuffer = await getImageBuffer(code, preowned, quarter.toString());
+            const imageBuffer = await getImageBuffer(code, quarter.toString());
 
             console.log(`Found image for ${code} in ${quarter.toString()}.`);
 
@@ -221,7 +225,7 @@ function scaledMidpointBetweenQuarters(figure1, figure2, code) {
 
     if (diff == 0) return Quarter.fromNumber(figure1.quarter);
 
-    const codeScale = (figure2.code - code)/diff;
+    const codeScale = Math.abs(1 - (figure2.code - code)/diff);
 
 
     const quarterA = Quarter.fromNumber(figure1.quarter);
@@ -261,8 +265,13 @@ class Quarter {
     static fromNumQuarters(numQuarters) {
         if (typeof numQuarters != "number") throw new Error("numQuarters must be a number");
 
-        const year = Math.floor(numQuarters / 4);
-        const quarter = numQuarters % 4;
+        let year = Math.floor(numQuarters / 4);
+        let quarter = numQuarters % 4;
+
+        if (quarter === 0) {
+            year -= 1;
+            quarter = 4;
+        }
 
         return new Quarter(year, quarter);
     }
@@ -278,28 +287,15 @@ class Quarter {
     }
 
     // this method is an absolute mess but it's *probably* kind of correct.
-    addQuarter(quarter) {
-        if (typeof quarter !== "number") throw new Error("quarter must be a number");
+    addQuarter(quarters) {
+        if (!Number.isInteger(quarters)) throw new Error("quarters must be an integer");
 
-        const sum = this.quarter + quarter;
-        let year = this.year;
-        let newQuarter;
-    
-        if (sum >= 1 && sum <= 4) {
-            year += Math.floor((sum - 1) / 4);
-            newQuarter = (sum - 1) % 4 + 1;
-        } else if (sum < 1) {
-            const quartersToSubtract = Math.ceil(Math.abs(sum) / 4);
-            year -= Math.max(quartersToSubtract, 1);
-            newQuarter = 4 - (Math.abs(sum) % 4);
-            if (newQuarter === 0) newQuarter = 4;
-        } else {
-            const quartersToAdd = Math.floor((sum - 1) / 4);
-            year += quartersToAdd;
-            newQuarter = (sum - 1) % 4 + 1;
-        }
-    
-        return new Quarter(year, Math.round(newQuarter));
+        const numQuarters = this.toNumQuarters() + quarters;
+        return Quarter.fromNumQuarters(numQuarters);
+    }
+
+    clone() {
+        return new Quarter(this.year, this.quarter);
     }
 
     toNumQuarters() {
