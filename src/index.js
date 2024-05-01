@@ -27,8 +27,11 @@ client.on("messageCreate", async message => {
 
         if (!quarter) {
             console.error(`Failed to guess quarter for ${code}. Manual intervention required.`);
-            const owner = await client.users.fetch(process.env.BOT_OWNER_ID);
-            await owner.send(`Failed to guess quarter for \`${code}\`.`);
+            
+            if (process.env.BOT_OWNER_ID) {
+                const owner = await client.users.fetch(process.env.BOT_OWNER_ID);
+                await owner.send(`Failed to guess quarter for \`${code}\`.`);
+            }
             return;
         }
 
