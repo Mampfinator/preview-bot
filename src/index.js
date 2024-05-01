@@ -1,9 +1,6 @@
 require("dotenv").config();
 const { Client, IntentsBitField: {Flags: IntentsFlags}, AttachmentBuilder } = require("discord.js");
 const { default: axios, AxiosError } = require("axios");
-const { launch } = require("puppeteer");
-const { wrapper } = require("axios-cookiejar-support");
-const { CookieJar } = require("tough-cookie");
 const sqlite = require("sqlite3");
 
 const client = new Client({
@@ -15,29 +12,6 @@ const db = new sqlite.Database(process.env.DB_PATH ?? "./data.db");
 const AMIAMI_FIGURE_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?[A-Za-z0-9_]*?code=FIGURE-)[0-9]+(-R)?/g;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-const jar = new CookieJar();
-
-const instance = wrapper(axios.create({
-    method: "GET",
-    baseURL: `https://api.amiami.com/api/v1.0`,
-    headers: {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Connection": "keep-alive",
-        "DNT": "1",
-        "Host": "api.amiami.com",
-        "Origin": "https://www.amiami.com",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-site",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
-        "X-User-Key": "amiami_dev"
-    },
-    with_credentials: true,
-    jar,
-}));
 
 client.on("messageCreate", async message => {
     const matches = [...message.content.matchAll(AMIAMI_FIGURE_REGEX)];
@@ -78,25 +52,6 @@ async function main() {
             resolve();
         });
     });
-
-    const chromiumPath = process.env.CHROMIUM_PATH;
-
-    const browser = await launch({ headless: true, executablePath: chromiumPath });
-    const page = await browser.newPage();
-
-    await page.goto("https://www.amiami.com/");
-    await page.waitForNetworkIdle();
-
-    const cookies = await page.cookies();
-
-    for (const cookie of cookies) {
-        await jar.setCookie(`${cookie.name}=${cookie.value}`, "amiami.com");
-    }
-
-    console.log(`Acquired ${cookies.length} cookies from amiami: ${cookies.map(cookie => `${cookie.name}=${cookie.value}`).join(";")}`);
-
-    await page.close();
-    await browser.close();
     
     await client.login(process.env.DISCORD_TOKEN);
 
@@ -177,7 +132,7 @@ async function guesstimateQuarter(rawCode) {
     if (!rows) return null;
     if (rows.length <= 0) return null;
 
-    const initialQuarter = rows.length == 1 ? Quarter.fromString(rows[0].quarter) : scaledMidpointBetweenQuarters(rows[0], rows[1], code);
+    const initialQuarter = rows.length == 1 ? Quarter.fromString(rows[0].quarter) : estimateQuarter(rows[0], rows[1], code);
     let quarter = initialQuarter.clone();
 
     console.log("Initial guess: ", quarter);
@@ -218,7 +173,7 @@ async function guesstimateQuarter(rawCode) {
 }
 
 
-function scaledMidpointBetweenQuarters(figure1, figure2, code) {
+function estimateQuarter(figure1, figure2, code) {
     if (!figure1 || !figure2) throw new TypeError("quarter1 and quarter2 must be objects with year and quarter properties");
 
     const diff = figure2.code - figure1.code;
