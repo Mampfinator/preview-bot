@@ -135,7 +135,9 @@ async function guesstimateQuarter(rawCode) {
     if (!rows) return null;
     if (rows.length <= 0) return null;
 
-    const initialQuarter = rows.length == 1 ? Quarter.fromString(rows[0].quarter) : estimateQuarter(rows[0], rows[1], code);
+    console.log(rows);
+
+    const initialQuarter = rows.length == 1 ? Quarter.fromString(String(rows[0].quarter)) : estimateQuarter(rows[0], rows[1], code);
     let quarter = initialQuarter.clone();
 
     console.log("Initial guess: ", quarter);
@@ -209,6 +211,8 @@ class Quarter {
     }
 
     static fromString(quarterStr) {
+        if (typeof quarterStr !== "string") quarterStr = String(quarterStr);
+
         const year = Number(quarterStr.substr(0, 2));
         const quarter = Number(quarterStr.substr(2, 1));
 
