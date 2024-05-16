@@ -1,7 +1,7 @@
 const { default: axios, AxiosError } = require("axios");
 const sqlite = require("sqlite3");
 
-const { sleep } = require("./util");
+const { sleep } = require("../util");
 
 class AmiAmiFallbackClient {
     #db;
