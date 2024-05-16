@@ -94,7 +94,7 @@ class AmiAmiFallbackPreview {
     }
 }
 
-const AmiAmiMatcher = {
+const AmiAmiPreview = {
     /**
      * @param {string} content
      * @returns {string[]} matches
@@ -114,5 +114,5 @@ const AmiAmiMatcher = {
 
 
 module.exports = {
-    AmiAmiMatcher,
+    AmiAmiPreview,
 };

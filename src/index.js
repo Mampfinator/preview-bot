@@ -1,6 +1,7 @@
 require("dotenv").config();
 const { Client, IntentsBitField: {Flags: IntentsFlags} } = require("discord.js");
-const { AmiAmiMatcher } = require("./amiami");
+const { AmiAmiPreview } = require("./amiami");
+const { YouTubePreview } = require("./youtube");
 
 const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
@@ -10,7 +11,8 @@ const client = new Client({
  *  for different preview-less platforms.
  */
 client.previews = [
-    AmiAmiMatcher,
+    AmiAmiPreview,
+    YouTubePreview,
 ];
 
 client.on("messageCreate", async message => {
