@@ -29,7 +29,7 @@ class AmiAmiApiPreview {
         const priceUsd = priceJpy / 155;
         
         const embed = new EmbedBuilder()
-            .setURL(`https://amiami.com/eng/detail/${codeType}=${code}`)
+            .setURL(`https://www.amiami.com/eng/detail?${codeType}=${code}`)
             .setDescription(`**Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}`)
             .setTitle(item.name)
             .setImage(item.image)
@@ -77,7 +77,7 @@ class AmiAmiFallbackPreview {
             ],
             embeds: [
                 new EmbedBuilder()
-                    .setURL(`https://amiami.com/eng/detail/gcode=${code}`)
+                    .setURL(`https://www.amiami.com/eng/detail?gcode=${code}`)
                     .setTitle(`${code}`)
                     .setImage(`attachment://${code}.jpg`)
                     .setColor("#f68329")
