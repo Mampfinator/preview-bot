@@ -50,14 +50,6 @@ class AmiAmiApiClient {
             throw error;
         }
     }
-
-    async currencylayer() {
-        return this.#instance.get("/files/currencylayer.json", {
-            headers: {
-                Host: "amiami.com",
-            }
-        }).then(res => res.data);
-    }
 }
 
 

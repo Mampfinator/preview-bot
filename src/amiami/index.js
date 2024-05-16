@@ -1,8 +1,11 @@
 const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const { AmiAmiApiClient } = require("./amiami-api");
 const { AmiAmiFallbackClient } = require("./amiami-fallback");
+const { CurrencyApi } = require("../currencyapi");
 
 const AMIAMI_ITEM_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?)([sg]code)\=([A-Za-z0-9\-]+)/g;
+
+const currencyApi = new CurrencyApi();
 
 class AmiAmiApiPreview {
     #client;
@@ -26,7 +29,9 @@ class AmiAmiApiPreview {
 
         const discountRate = item.discountRate();
         const priceJpy = item.price;
-        const priceUsd = priceJpy / 155;
+
+        const conversionRate = currencyApi.conversionRate;
+        const priceUsd = priceJpy / conversionRate;
         
         const embed = new EmbedBuilder()
             .setURL(`https://www.amiami.com/eng/detail?${codeType}=${code}`)
@@ -37,7 +42,7 @@ class AmiAmiApiPreview {
             .setColor("#f68329")
             .setFooter({
                 iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
-                text: `USD price is an estimate based on 1 USD = 155 JPY.`
+                text: `Price in USD based on a conversion rate of 1 USD ≈ ${conversionRate.toFixed(6)} JPY.`
             });
         
         if (item.spec && item.spec.length > 0) {
@@ -110,6 +115,9 @@ const AmiAmiPreview = {
         }),
         new AmiAmiFallbackPreview(),
     ],
+    async init() {
+        await currencyApi.ready;
+    }
 }
 
 
