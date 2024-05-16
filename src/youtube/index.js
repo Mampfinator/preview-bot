@@ -41,11 +41,11 @@ class YouTubeCommunityPostPreview {
 function postToEmbed(post, channel) {
     const { content, attachmentType, id: postId } = post;
 
-    const { avatarUrl, name, id: channelId } = channel;
+    const { avatar, name, id: channelId } = channel;
 
     const embed = new EmbedBuilder().setAuthor({
         name,
-        iconURL: avatarUrl,
+        iconURL: avatar,
         url: `https://www.youtube.com/channel/${channelId}`,
     });
 
