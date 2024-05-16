@@ -79,6 +79,7 @@ if (Boolean(process.env.USE_AMIAMI_FALLBACK)) {
                 // random color from the amiami logo
                 .setColor("#f68329")
                 .setFooter({
+                    iconURL: process.env.AMIAMI_FAVICON_URL,
                     text: `USD price is an estimate of 1 USD = 155 JPY.`
                 });
 
