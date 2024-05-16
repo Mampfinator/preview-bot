@@ -64,6 +64,12 @@ class Item {
         this.#embedded = data._embedded;
     }
 
+    /**
+     * Whether an item is currently available for order
+     */
+    orderable() {
+        return Boolean(this.#item.stock);
+    }
 
     /**
      * @returns {number} the total discount rate.
@@ -74,6 +80,19 @@ class Item {
             this.#item.discountrate3 + 
             this.#item.discountrate4 +
             this.#item.discountrate5;
+    }
+
+    get remarks() {
+        const remarks = this.#item.remarks;
+        
+        return remarks && remarks.length > 0 ? remarks : undefined;
+    }
+
+    /**
+     * @type { "Released" | "Pre-Order" }
+     */
+    get saleStatus() {
+        return this.#item.salestatus
     }
 
     /**

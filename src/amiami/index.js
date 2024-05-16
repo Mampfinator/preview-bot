@@ -35,7 +35,11 @@ class AmiAmiApiPreview {
         
         const embed = new EmbedBuilder()
             .setURL(`https://www.amiami.com/eng/detail?${codeType}=${code}`)
-            .setDescription(`**Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}`)
+            .setDescription(`
+                **Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}
+                **Status**: ${item.saleStatus} ${!item.orderable() ? "(Out of stock)" : ""}
+                ${item.remarks ? "⚠️ This item may not be available in all regions." : ""}
+            `.trim())
             .setTitle(item.name)
             .setImage(item.image)
             // random color from the amiami logo
