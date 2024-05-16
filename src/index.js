@@ -6,13 +6,13 @@ const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
 });
 
+// TODO: we need a way to automatically toggle fallback if the API client fails.
 if (Boolean(process.env.USE_AMIAMI_FALLBACK)) {
-    const { AmiAmiFallbackClient } = require("./amiami-fallback");
-
     console.log("Using fallback logic for AmiAmi previews.");
-    
+
     const AMIAMI_FIGURE_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?[A-Za-z0-9_]*?code=FIGURE-)[0-9]+(-R)?/g;
-    
+
+    const { AmiAmiFallbackClient } = require("./amiami-fallback");
     const amiamiFallback = new AmiAmiFallbackClient();
 
     client.on("ready", async () => {
@@ -44,10 +44,10 @@ if (Boolean(process.env.USE_AMIAMI_FALLBACK)) {
     });
 } else {
     console.log("Using API logic for AmiAmi previews.");
-
-    const { AmiAmiApiClient } = require("./amiami-api");
+    
     const AMIAMI_ITEM_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?)([sg]code)\=([A-Za-z0-9\-]+)/g;
 
+    const { AmiAmiApiClient } = require("./amiami-api");
     const amiamiClient = new AmiAmiApiClient({
         domain: process.env.AMIAMI_DOMAIN ?? "amiami.com",
     });
@@ -79,8 +79,8 @@ if (Boolean(process.env.USE_AMIAMI_FALLBACK)) {
                 // random color from the amiami logo
                 .setColor("#f68329")
                 .setFooter({
-                    iconURL: process.env.AMIAMI_FAVICON_URL,
-                    text: `USD price is an estimate of 1 USD = 155 JPY.`
+                    iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
+                    text: `USD price is an estimate based on 1 USD = 155 JPY.`
                 });
 
             if (item.spec && item.spec.length > 0) {
@@ -113,4 +113,4 @@ async function main() {
     console.log(`Logged into Discord as ${client.user.tag}.`);
 }
 
-main()
+main();

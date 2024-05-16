@@ -84,10 +84,6 @@ class Item {
             this.#item.discountrate5;
     }
 
-    get gcode() {
-        return this.#item.gcode;
-    }
-
     /**
      * @type {string}
      */
@@ -109,24 +105,8 @@ class Item {
         return this.#item.price;
     }
 
-    get saleStatus() {
-        return this.#item.salestatus;
-    }
-
-    get makerName() {
-        return this.#item.makername;
-    }
-
-    get modeler() {
-        return this.#item.modeler;
-    }
-
     get spec() {
         return this.#item.spec;
-    }
-
-    get stock() {
-        return this.#item.stock;
     }
 
     get image() {

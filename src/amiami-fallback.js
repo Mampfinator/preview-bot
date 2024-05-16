@@ -242,5 +242,4 @@ class Quarter {
 
 module.exports = {
     AmiAmiFallbackClient,
-    Quarter,
 }
