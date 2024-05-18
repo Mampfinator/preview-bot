@@ -84,12 +84,14 @@ function postToEmbed(post, channel) {
             embed.setImage(playlist.thumbail);
             break;
         case AttachmentType.Poll:
+        case AttachmentType.Quiz:
             const { choices } = post;
             embedContent += "\n\u200b\n\u200b";
             embed.addFields({
                 name: "Poll",
                 value: choices.map(choice => `\u2022 \u200b ${choice.text}`).join("\n"),
             });
+            break;
     }
     embed.setDescription(embedContent);
 
