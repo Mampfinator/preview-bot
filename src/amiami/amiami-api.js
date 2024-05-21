@@ -124,6 +124,10 @@ class Item {
         return `https://img.amiami.com/${this.#item.main_image_url}`;
     }
 
+    get quarter() {
+        return Number(this.#item.image_category.replaceAll("/", ""));
+    }
+
     toRaw() {
         return { item: this.#item, _embedded: this.#embedded }; 
     }

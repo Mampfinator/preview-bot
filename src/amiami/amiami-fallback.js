@@ -14,21 +14,31 @@ class AmiAmiFallbackClient {
 
     async init() {
         await new Promise((resolve, reject) => {
-            this.#db.run("CREATE TABLE IF NOT EXISTS figures (code INTEGER, quarter INTEGER, preowned INTEGER)", (err) => {
+            this.#db.run("CREATE TABLE IF NOT EXISTS figures (code INTEGER UNIQUE PRIMARY KEY, quarter INTEGER, preowned INTEGER)", (err) => {
                 if (err) reject(err)
                 resolve();
             });
         });
     }
 
-    async getImage(code) {
+    async getImage(rawCode) {
         try {
-            const [_, buffer] = await guesstimateQuarter(this.#db, code);
+            const [{ quarter, code, prewoned }, buffer] = await guesstimateQuarter(this.#db, rawCode);
+            if (!buffer) return null;
+            
+            await this.insert(code, quarter, prewoned);
             return buffer;
         } catch (error) {
             console.error(error);
             return null;
         }
+    }
+
+    async insert(code, quarter, preowned) {
+        return new Promise((res, rej) => this.#db.run("INSERT OR IGNORE INTO figures VALUES (?, ?, ?)", [code, quarter, preowned], (err) => {
+            if (err) rej(err);
+            res();
+        }));
     }
 }
 
@@ -106,8 +116,6 @@ async function guesstimateQuarter(db, rawCode) {
     if (!rows) return null;
     if (rows.length <= 0) return null;
 
-    console.log(rows);
-
     const initialQuarter = rows.length == 1 ? Quarter.fromString(String(rows[0].quarter)) : estimateQuarter(rows[0], rows[1], code);
     let quarter = initialQuarter.clone();
 
@@ -123,10 +131,7 @@ async function guesstimateQuarter(db, rawCode) {
             console.log(`Found image for ${code} in ${quarter.toString()}.`);
 
             if (imageBuffer) {
-                // Update DB - we found a quarter for an unknown code
-                db.run("INSERT INTO figures VALUES (?, ?, ?)", code, Number(quarter.toString()), Number(preowned));
-
-                return [quarter, imageBuffer];
+                return [{code, preowned, quarter: quarter.toString()}, imageBuffer];
             }
         } catch (error) {
             if (error instanceof AxiosError && error.response?.status == 404) {

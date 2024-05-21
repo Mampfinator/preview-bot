@@ -6,6 +6,10 @@ const { CurrencyApi } = require("../currencyapi");
 const AMIAMI_ITEM_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?)([sg]code)\=([A-Za-z0-9\-]+)/g;
 
 const currencyApi = new CurrencyApi();
+/**
+ * This is scoped outside {@link AmiAmiFallbackPreview} so {@link AmiAmiApiPreview} can access it as well.
+ */
+const amiamiFallbackClient = new AmiAmiFallbackClient();
 
 class AmiAmiApiPreview {
     #client;
@@ -26,6 +30,8 @@ class AmiAmiApiPreview {
 
         const item = await this.#client.item(code, codeType);
         if (!item) return null;
+
+        if (code.startsWith("FIGURE-")) await amiamiFallbackClient.insert(Number(code.split("-")[1]), item.quarter, code.endsWith("-R")).catch(console.error);
 
         const discountRate = item.discountRate();
         const priceJpy = item.price;
@@ -63,7 +69,7 @@ class AmiAmiApiPreview {
 }
 
 class AmiAmiFallbackPreview {
-    #client = new AmiAmiFallbackClient();
+    #client = amiamiFallbackClient;
 
     /**
      * @param {string} match
@@ -97,10 +103,6 @@ class AmiAmiFallbackPreview {
             ]
         }
     }
-
-    async init() {
-        await this.#client.init();
-    }
 }
 
 const AmiAmiPreview = {
@@ -120,6 +122,7 @@ const AmiAmiPreview = {
         new AmiAmiFallbackPreview(),
     ],
     async init() {
+        await amiamiFallbackClient.init();
         await currencyApi.ready;
     }
 }
