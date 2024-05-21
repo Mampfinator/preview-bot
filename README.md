@@ -1,25 +1,45 @@
 # Preview Bot
 
-Replies to messages that contain [AmiAmi](https://www.amiami.com/) links to individual figures with image previews.
+Generates embed previews for sites that don't natively support it, such as [AmiAmi](https://amiami.com) and YouTube community posts
+(which for some reason only embed channel metadata instead by default).
 
-![Example reply](example.png)
+[!NOTE] The bot is currently semi-private. If you'd like to use my instance, reach out to me on Discord!
 
-It's incredibly crude, but usually works fine.
+# Examples
 
-Currently it only works for entries with a `FIGURE-` g-/scode. If you're interested in why, check the [How it works](#how-it-works) section.
+## AmiAmi
+<details>
+    <summary>With API access</summary>
+    
+    ![API preview embed](docs/amiami_api_preview.png)
+</details>
+
+<details>
+    <summary>Fallback</summary>
+    
+    ![Fallback preview embed](docs/amiami_fallback_preview.png)
+</details>
+
+## YouTube
+
+<details>
+    <summary>Image posts</summary>
+
+    ![Image preview embed](docs/youtube_image_preview.png)
+</details>
+
+<details>
+    <summary>Poll/quiz posts</summary>
+    
+    [!IMPORTANT] Quiz posts do not currently have a way to display the correct answer.
+    
+    ![Poll preview embed](docs/youtube_poll_preview.png)
+</details>
 
 
-## How it works
-
-Since both the frontend and the internal API are pretty locked down in terms of bot protection, this bot doesn't even attempt to use those.
-Instead, it makes educated *guesses* for a figure's preview image URL on `img.amiami.com`, since that doesn't seem to care about bots.
-
-Image URLs are structured `https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}.jpg`, where the `quarter` is (what I assume to be) the quarter in which the figure was added to the site. The bot assumes that there's a basically linear relationship between a figure's `code` and its `quarter`, and estimates an initial `quarter` based on figures it has already seen. If it's wrong, it adjusts its guess and keeps trying.
-
-While it's technically possible to have datasets for estimating for every type of code (other than `FIGURE`), it'd lead to a lot of complexity and ultimately wouldn't be incredibly useful - since figures are by and large the main use for AmiAmi.
 
 ## Contributing
 
 This bot is not supposed to be super complex, but contributions are always welcome!
 
-If you'd like to add a major feature, I'd appreciate it if you [open an Issue](https://github.com/Mampfinator/preview-bot/issues/new) first or reach out to me on Discord.
+If you'd like to add a major feature (such as support for a new site), I'd appreciate it if you [open an Issue](https://github.com/Mampfinator/preview-bot/issues/new) first or reach out to me on Discord.
