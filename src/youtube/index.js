@@ -35,6 +35,7 @@ class YouTubeCommunityPostPreview {
 }
 
 /**
+ * Converts a Community Post into an {@link EmbedBuilder}.
  * @param { import("@sireatsalot/youtube.js").CommunityPost } post
  * @param { import("@sireatsalot/youtube.js").ChannelData } channel
  */

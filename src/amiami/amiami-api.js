@@ -2,10 +2,20 @@ const axios = require("axios");
 const https = require("https");
 
 class AmiAmiApiClient {
+    /**
+     * Used to make requests to the AmiAmi API.
+     * 
+     * @type {import("axios").AxiosInstance}
+     */
     #instance;
 
+    /**
+     * @param {object} [options] Options to configure the client.
+     * @param {string} [options.domain] API domain to use. Defaults to "api.amiami.com".
+     * @param {string} [options.version] API version to use. Defaults to "v1.0" (current).
+     */
     constructor(options) {
-        const domain = options?.domain ?? AMIAMI_IP;
+        const domain = options?.domain ?? "api.amiami.com"
         const version = options?.version ?? "v1.0";
 
         const url = `https://${domain}/api/${version}/`;
@@ -14,19 +24,26 @@ class AmiAmiApiClient {
             baseURL: url,
             headers: {
                 "X-User-Key": "amiami_dev",
+                // this is important even if we don't go through api.amiami.com!
                 Host: "api.amiami.com",
                 Origin: "https://www.amiami.com",
                 Referer: "https://www.amiami.com",
             },
             withCredentials: true,
             httpsAgent: new https.Agent({
-                // since we're making a request to the raw IP, we'd get a cert domain mismatch. But we don't care.
                 rejectUnauthorized: true,
             }),
         });
     }
 
 
+    /**
+     * Fetch an item from the API.
+     * 
+     * @param {string} code 
+     * @param {"scode" | "gcode"} codeType 
+     * @returns { Promise<Item | null> } The item, or null if it doesn't exist.
+     */
     async item(code, codeType = "gcode") {
         try {
             const response = await this.#instance.get(`/item`, {
@@ -52,7 +69,9 @@ class AmiAmiApiClient {
     }
 }
 
-
+/**
+ * Represents an item from the AmiAmi API.
+ */
 class Item {
     #item
     #embedded;
@@ -82,6 +101,10 @@ class Item {
             this.#item.discountrate5;
     }
 
+    /**
+     * Additional remarks for this item. This is usually information about regions this item is unavailable in.
+     * @type {string | undefined}
+     */
     get remarks() {
         const remarks = this.#item.remarks;
         
@@ -96,6 +119,8 @@ class Item {
     }
 
     /**
+     * The (English) name of the item.
+     * 
      * @type {string}
      */
     get name() {
@@ -103,6 +128,8 @@ class Item {
     }
 
     /**
+     * The full price with taxes and all discounts applied.
+     * 
      * @type { number }
      */
     get fullPrice() {
@@ -110,6 +137,8 @@ class Item {
     }
 
     /**
+     * The base price for this item.
+     * 
      * @type { number }
      */
     get price() {
@@ -120,16 +149,20 @@ class Item {
         return this.#item.spec;
     }
 
+    /**
+     * The main image URL for this item.
+     */
     get image() {
         return `https://img.amiami.com/${this.#item.main_image_url}`;
     }
 
+    /**
+     * The quarter this item was added to the catalog.
+     * 
+     * This is mainly used for fallback previews.
+     */
     get quarter() {
         return Number(this.#item.image_category.replaceAll("/", ""));
-    }
-
-    toRaw() {
-        return { item: this.#item, _embedded: this.#embedded }; 
     }
 }
 

@@ -7,9 +7,7 @@ const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
 });
 
-/**
- *  for different preview-less platforms.
- */
+
 client.previews = [
     AmiAmiPreview,
     YouTubePreview,

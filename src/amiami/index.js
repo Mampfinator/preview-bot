@@ -3,14 +3,24 @@ const { AmiAmiApiClient } = require("./amiami-api");
 const { AmiAmiFallbackClient } = require("./amiami-fallback");
 const { CurrencyApi } = require("../currencyapi");
 
+/**
+ * Matches item links for AmiAmi; the returned matches are of the form "scode=code" or "gcode=code".
+ */
 const AMIAMI_ITEM_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?)([sg]code)\=([A-Za-z0-9\-]+)/g;
 
+/**
+ * Used to convert the price of an item from JPY to USD inside {@link AmiAmiApiPreview}.
+ */
 const currencyApi = new CurrencyApi();
+
 /**
  * This is scoped outside {@link AmiAmiFallbackPreview} so {@link AmiAmiApiPreview} can access it as well.
  */
 const amiamiFallbackClient = new AmiAmiFallbackClient();
 
+/**
+ * Generates a preview of an item in AmiAmi.
+ */
 class AmiAmiApiPreview {
     #client;
 
@@ -105,6 +115,12 @@ class AmiAmiFallbackPreview {
     }
 }
 
+/**
+ * Generates a preview of an item in AmiAmi.
+ * 
+ * @see {@link AmiAmiApiPreview}
+ * @see {@link AmiAmiFallbackPreview}
+ */
 const AmiAmiPreview = {
     /**
      * @param {string} content

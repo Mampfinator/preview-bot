@@ -3,6 +3,11 @@ const sqlite = require("sqlite3");
 
 const { sleep } = require("../util");
 
+/**
+ * The fallback client for AmiAmi.
+ * 
+ * Its main purpose is to at least generate image URLs in cases where the main API fails.
+ */
 class AmiAmiFallbackClient {
     #db;
 
@@ -21,6 +26,9 @@ class AmiAmiFallbackClient {
         });
     }
 
+    /**
+     * Returns an image buffer for the given code, or null if it can't find the image after 16 tries.
+     */
     async getImage(rawCode) {
         try {
             const [{ quarter, code, prewoned }, buffer] = await guesstimateQuarter(this.#db, rawCode);
@@ -34,6 +42,9 @@ class AmiAmiFallbackClient {
         }
     }
 
+    /**
+     * Insert a new FIGURE-code - quarter pair into the database.
+     */
     async insert(code, quarter, preowned) {
         return new Promise((res, rej) => this.#db.run("INSERT OR IGNORE INTO figures VALUES (?, ?, ?)", [code, quarter, preowned], (err) => {
             if (err) rej(err);
@@ -61,6 +72,12 @@ function getImageBuffer(code, quarter) {
     return axios.get(url, { responseType: "arraybuffer" }).then(res => Buffer.from(res.data, "binary"));
 }
 
+/**
+ * Tries to guess the quarter for the given code.
+ * 
+ * It does this by estimating the quarter from the previous and next figures we've already seen,
+ * then guessing quarters around the initial estimate.
+ */
 async function guesstimateQuarter(db, rawCode) {
     if (typeof rawCode != "string") throw new Error("code must be a string");
 
@@ -124,6 +141,7 @@ async function guesstimateQuarter(db, rawCode) {
 
     let guess = 0;
 
+    // this is a pretty arbitrary number of tries, we might want to make it configurable.
     while (guess < 16) {
         try {
             const imageBuffer = await getImageBuffer(code, quarter.toString());
@@ -138,7 +156,7 @@ async function guesstimateQuarter(db, rawCode) {
                 const sign = guess % 2 == 0 ? 1 : -1;
                 const offset = Math.floor(guess / 2) + 1;
 
-                quarter = initialQuarter.addQuarter(offset * sign);
+                quarter = initialQuarter.addQuarters(offset * sign);
                 console.log(`Failed to get image for ${code}. Retrying with ${quarter.toString()} (${initialQuarter.toString()} ${sign > 0 ? "+" : "-"} ${offset}).`);
 
                 guess += 1;
@@ -153,10 +171,11 @@ async function guesstimateQuarter(db, rawCode) {
     return [null, null];
 }
 
-
+/**
+ * Estimates the quarter between two figures.
+ * Linearly interpolates the quarter from the difference between the two figure codes.
+ */
 function estimateQuarter(figure1, figure2, code) {
-    if (!figure1 || !figure2) throw new TypeError("quarter1 and quarter2 must be objects with year and quarter properties");
-
     const diff = figure2.code - figure1.code;
 
     if (diff == 0) return Quarter.fromNumber(figure1.quarter);
@@ -169,14 +188,18 @@ function estimateQuarter(figure1, figure2, code) {
 
     const quartersToAdd = Math.round((quarterB.toNumQuarters() - quarterA.toNumQuarters()) * codeScale);
 
-    const result = quarterA.addQuarter(quartersToAdd);
+    const result = quarterA.addQuarters(quartersToAdd);
 
     console.log(`Estimated quarter between ${quarterA.toString()} (${figure1.code}) and ${quarterB.toString()} (${figure2.code}): ${result.toString()} (${quartersToAdd}; ${String(codeScale).substring(0, 4)}).`);
 
     return result;
 }
 
-
+/**
+ * Represents a quarter in the AmiAmi catalog.
+ * 
+ * Converts between string and a number representations, and implements some useful (arithmetic) methods.
+ */
 class Quarter {
     year;
     quarter;
@@ -186,6 +209,11 @@ class Quarter {
         this.quarter = quarter;
     }
 
+    /**
+     * Parse a quarter string into a Quarter object.
+     * 
+     * A quarter string is a string of the form `YYQ` where `YY` is the year and `Q` is the quarter.
+     */
     static fromString(quarterStr) {
         if (typeof quarterStr !== "string") quarterStr = String(quarterStr);
 
@@ -195,11 +223,23 @@ class Quarter {
         return new Quarter(year, quarter);
     }
 
+    /**
+     * Create a Quarter object from a number. This is an *alias* for `Quarter.fromString()`, only for convenience.
+     * 
+     * If you need to convert from a number of quarters, use {@link Quarter.fromNumQuarters}.
+     */
     static fromNumber(num) {
         if (typeof num != "number") throw new Error("num must be a number");
         return Quarter.fromString(String(num));
     }
 
+    /**
+     * Create a Quarter object from a number of quarters.
+     * 
+     * A "number of quarters" is `YY * 4 + Q`, where `YY` is the year and `Q` is the quarter.
+     * 
+     * If you need to convert from a quarter string, use {@link Quarter.fromString}.
+     */
     static fromNumQuarters(numQuarters) {
         if (typeof numQuarters != "number") throw new Error("numQuarters must be a number");
 
@@ -214,32 +254,46 @@ class Quarter {
         return new Quarter(year, quarter);
     }
 
+    /**
+     * Create a copy of this Quarter object.
+     */
     clone() {
         return new Quarter(this.year, this.quarter);
     }
 
-    addYear(year) {
-        if (typeof year != "number") throw new Error("year must be a number");
+    /**
+     * Create a new Quarter object that is `years` years after this one.
+     */
+    addYear(years) {
+        if (typeof years != "number") throw new Error("year must be a number");
 
-        return new Quarter(this.year + year, this.quarter);
+        return new Quarter(this.year + years, this.quarter);
     }
 
-    // this method is an absolute mess but it's *probably* kind of correct.
-    addQuarter(quarters) {
+    /**
+     * Create a new Quarter object that is `quarters` quarters after this one.
+     */
+    addQuarters(quarters) {
         if (!Number.isInteger(quarters)) throw new Error("quarters must be an integer");
 
         const numQuarters = this.toNumQuarters() + quarters;
         return Quarter.fromNumQuarters(numQuarters);
     }
 
-    clone() {
-        return new Quarter(this.year, this.quarter);
-    }
-
+    /**
+     * Get the number of quarters in this Quarter object.
+     * 
+     * To convert back from a number of quarters, use {@link Quarter.fromNumQuarters}.
+     */
     toNumQuarters() {
         return this.year * 4 + this.quarter
     }
 
+    /**
+     * Get the quarter as a string of the form `YYQ` where `YY` is the year and `Q` is the quarter.
+     * 
+     * To convert back from a quarter string, use {@link Quarter.fromString}.
+     */
     toString() {
         return `${this.year}${this.quarter}`
     }
