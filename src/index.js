@@ -29,6 +29,7 @@ client.on("messageCreate", async message => {
                     // we take the first result for every match.
                     continue matches;
                 } catch (error) {
+                    console.error(error);
                     continue;
                 }
             }
