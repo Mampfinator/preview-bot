@@ -122,6 +122,7 @@ class AmiAmiFallbackPreview {
  * @see {@link AmiAmiFallbackPreview}
  */
 const AmiAmiPreview = {
+    name: "AmiAmi",
     /**
      * @param {string} content
      * @returns {string[]} matches

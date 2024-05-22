@@ -100,6 +100,7 @@ function postToEmbed(post, channel) {
 }
 
 const YouTubePreview = {
+    name: "YouTube (Community Posts)",
     match(content) {
         return [...content.matchAll(postIdRegex)].map(match => typeof match == "string" ? match : match[0]);
     },
