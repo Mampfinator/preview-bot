@@ -18,7 +18,7 @@ client.on("ready", async () => {
     }
 
     await client.application.commands.set([
-        getSettingsCommand(client).builder, 
+        getSettingsCommand(client), 
     ], debugGuild);
 
     await client.destroy();

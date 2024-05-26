@@ -1,6 +1,6 @@
 require("dotenv").config();
 const { getClient } = require("./client");
-const { Settings, getSettingsCommand } = require("./settings");
+const { Settings, settingsHandler } = require("./settings");
 
 const client = getClient();
 
@@ -32,8 +32,6 @@ client.on("messageCreate", async message => {
         }
     }
 })
-
-const settingsHandler = getSettingsCommand(client).handler;
 
 client.on("interactionCreate", async interaction => {
     if (!interaction.isChatInputCommand()) return;

@@ -139,113 +139,112 @@ class Settings {
 
 function getSettingsCommand(client) {
     /**
-     * @type {[string, string][]}
+     * @type {string[]}
      */
     const previewNames = client.previews.map(preview => preview.name);
     
-    return {
-        builder: new SlashCommandBuilder()
-            .setName("settings")
-            .setDescription("View or modify your settings.")
-            .setDMPermission(false)
-            .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-            .addSubcommand(view => view
-                .setName("view")
-                .setDescription("View your settings.")
+    return new SlashCommandBuilder()
+        .setName("settings")
+        .setDescription("View or modify your settings.")
+        .setDMPermission(false)
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .addSubcommand(view => view
+            .setName("view")
+            .setDescription("View your settings.")
+        )
+        .addSubcommand(disable => disable
+            .setName("disable")
+            .setDescription("Disable a preview provider.")
+            .addStringOption(option => option
+                .setName("provider")
+                .setDescription("The provider to disable.")
+                .setChoices(...previewNames.map(name => ({ name, value: name })))
+                .setRequired(true)
             )
-            .addSubcommand(disable => disable
-                .setName("disable")
-                .setDescription("Disable a preview provider.")
-                .addStringOption(option => option
-                    .setName("provider")
-                    .setDescription("The provider to disable.")
-                    .setChoices(...previewNames.map(name => ({ name, value: name })))
-                    .setRequired(true)
-                )
+        )
+        .addSubcommand(enable => enable
+            .setName("enable")
+            .setDescription("Enable a preview provider.")
+            .addStringOption(option => option
+                .setName("provider")
+                .setDescription("The provider to enable.")
+                .setChoices(...previewNames.map(name => ({ name, value: name })))
+                .setRequired(true)
             )
-            .addSubcommand(enable => enable
-                .setName("enable")
-                .setDescription("Enable a preview provider.")
-                .addStringOption(option => option
-                    .setName("provider")
-                    .setDescription("The provider to enable.")
-                    .setChoices(...previewNames.map(name => ({ name, value: name })))
-                    .setRequired(true)
-                )
-            )
-            .addSubcommand(style => style
+        )
+        .addSubcommand(style => style
+            .setName("style")
+            .setDescription("Set the preferred preview style.")
+            .addStringOption(option => option
                 .setName("style")
-                .setDescription("Set the preferred preview style.")
-                .addStringOption(option => option
-                    .setName("style")
-                    .setDescription("The preferred preview style.")
-                    .setChoices({ name: "Full", value: "full" }, { name: "Compact", value: "compact" })
-                    .setRequired(true)
+                .setDescription("The preferred preview style.")
+                .setChoices({ name: "Full", value: "full" }, { name: "Compact", value: "compact" })
+                .setRequired(true)
+            )
+        );
+}
+
+async function settingsHandler(interaction) {
+    if (!interaction.inGuild()) throw new Error("Must be in a server to use this command.");
+
+    const subcommand = interaction.options.getSubcommand();
+
+    const settings = await Settings.forGuild(client.db, interaction.guildId);
+    switch (subcommand) {
+        case "view": {
+            const disabled = settings.disabled;
+            const enabled = interaction.client.previews.filter(preview => !disabled.has(preview.name)).map(preview => preview.name);
+            const style = settings.preferredStyle;
+            
+            const embed = new EmbedBuilder()
+                .setAuthor({
+                    name: interaction.guild.name,
+                    iconURL: interaction.guild.iconURL(),
+                })
+                .setTitle("Settings")
+                .addFields(
+                    { name: "Disabled", value: disabled.size ? Array.from(disabled).join(", ") : "None", inline: true },
+                    { name: "Enabled", value: enabled.length ? Array.from(enabled).join(", ") : "None", inline: true },
+                    { name: "Preferred style", value: style, inline: false },
                 )
-            ),
-        handler: async interaction => {
-            if (!interaction.inGuild()) throw new Error("Must be in a server to use this command.");
+                .setColor(Colors.Aqua);
 
-            const subcommand = interaction.options.getSubcommand();
+            return interaction.reply({ embeds: [embed] }); 
+        }
 
-            const settings = await Settings.forGuild(client.db, interaction.guildId);
-            switch (subcommand) {
-                case "view": {
-                    const disabled = settings.disabled;
-                    const enabled = interaction.client.previews.filter(preview => !disabled.has(preview.name)).map(preview => preview.name);
-                    const style = settings.preferredStyle;
-                    
-                    const embed = new EmbedBuilder()
-                        .setAuthor({
-                            name: interaction.guild.name,
-                            iconURL: interaction.guild.iconURL(),
-                        })
-                        .setTitle("Settings")
-                        .addFields(
-                            { name: "Disabled", value: disabled.size ? Array.from(disabled).join(", ") : "None", inline: true },
-                            { name: "Enabled", value: enabled.length ? Array.from(enabled).join(", ") : "None", inline: true },
-                            { name: "Preferred style", value: style, inline: false },
-                        )
-                        .setColor(Colors.Aqua);
+        case "disable": {
+            const provider = interaction.options.getString("provider");
+            settings.disable(provider);
+            await settings.save();
+            return interaction.reply({ embeds: [
+                new EmbedBuilder()
+                    .setDescription(`Disabled ${provider}.`)
+                    .setColor(Colors.Green)
+            ]});
+        }
 
-                    return interaction.reply({ embeds: [embed] }); 
-                }
+        case "enable": {
+            const provider = interaction.options.getString("provider");
+            settings.enable(provider);
+            await settings.save();
+            return interaction.reply({ embeds: [
+                new EmbedBuilder()
+                    .setDescription(`Enabled ${provider}.`)
+                    .setColor(Colors.Green)
+            ]});
+        }
 
-                case "disable": {
-                    const provider = interaction.options.getString("provider");
-                    settings.disable(provider);
-                    await settings.save();
-                    return interaction.reply({ embeds: [
-                        new EmbedBuilder()
-                            .setDescription(`Disabled ${provider}.`)
-                            .setColor(Colors.Green)
-                    ]});
-                }
-
-                case "enable": {
-                    const provider = interaction.options.getString("provider");
-                    settings.enable(provider);
-                    await settings.save();
-                    return interaction.reply({ embeds: [
-                        new EmbedBuilder()
-                            .setDescription(`Enabled ${provider}.`)
-                            .setColor(Colors.Green)
-                    ]});
-                }
-
-                case "style": {
-                    const style = interaction.options.getString("style");
-                    settings.setPreferredStyle(style);
-                    await settings.save();
-                    return interaction.reply({ embeds: [
-                        new EmbedBuilder()
-                            .setDescription(`Set preferred style to ${style}.`)
-                            .setColor(Colors.Green)
-                    ]});
-                }
-            }
+        case "style": {
+            const style = interaction.options.getString("style");
+            settings.preferredStyle = style;
+            await settings.save();
+            return interaction.reply({ embeds: [
+                new EmbedBuilder()
+                    .setDescription(`Set preferred style to ${style}.`)
+                    .setColor(Colors.Green)
+            ]});
         }
     }
 }
 
-module.exports = { Settings, getSettingsCommand };
+module.exports = { Settings, getSettingsCommand, settingsHandler };
