@@ -54,7 +54,7 @@ class AmiAmiApiPreview {
             .setDescription(`
                 **Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}
                 **Status**: ${item.saleStatus} ${!item.orderable() ? "(Out of stock)" : ""}
-                ${item.remarks ? "⚠️ This item may not be available in all regions." : ""}
+                ${item.regionLocked() ? "⚠️ This item may not be available in all regions." : ""}
             `.trim())
             .setTitle(item.name)
             .setImage(item.image)
