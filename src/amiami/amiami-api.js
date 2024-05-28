@@ -100,7 +100,7 @@ class Item {
         // - "This product cannot be shipped to the following area: [...]"
         // - "This product cannot be shipped to the following areas: [...]"
         // - "This product cannot be shipped to some areas."
-        return this.remarks.includes("This product cannot be shipped to");
+        return this.remarks?.includes("This product cannot be shipped to") ?? false;
     }
 
     /**
