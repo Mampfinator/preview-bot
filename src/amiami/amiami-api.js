@@ -91,6 +91,19 @@ class Item {
     }
 
     /**
+     * Whether an item is unavailable in any regions.
+     * 
+     * This currently only works for items requested in English.
+     */
+    regionLocked() {
+        // This should work for all current known cases:
+        // - "This product cannot be shipped to the following area: [...]"
+        // - "This product cannot be shipped to the following areas: [...]"
+        // - "This product cannot be shipped to some areas."
+        return this.remarks.includes("This product cannot be shipped to");
+    }
+
+    /**
      * @returns {number} the total discount rate.
      */
     discountRate() {
