@@ -52,7 +52,7 @@ function postToEmbed(post, channel) {
 
     let embedContent;
 
-    if (content)
+    if (content && content.length > 0)
         embedContent = content
             .map(({ text, url }) => `${url ? "[" : ""}${text}${url ? `](${url})` : ""}`)
             .join(" ");
@@ -94,7 +94,8 @@ function postToEmbed(post, channel) {
             });
             break;
     }
-    embed.setDescription(embedContent);
+    
+    if (embedContent && embedContent.length > 0) embed.setDescription(embedContent);
 
     return embed;
 }
