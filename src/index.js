@@ -17,7 +17,9 @@ client.on("messageCreate", async message => {
     if (message.author.bot) return;
 
     for (const group of client.previews) {
-        const matches = group.match(message.content);
+        // Dedupe matches. Messages may contain the same item multiple times, 
+        // but we only want to preview it once.
+        const matches = new Set(group.match(message.content));
         matches: for (const match of matches) {
             for (const generator of group.generators) {
                 try {
