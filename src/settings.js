@@ -123,9 +123,9 @@ class Settings {
             }));
         }
 
-        this.instances.set(id, new Settings(db, row));
-
-        return new Settings(db, row);
+        const settings = new Settings(db, row);
+        Settings.instances.set(id, settings);
+        return settings;
     }
 
 
