@@ -1,7 +1,8 @@
-const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
+const { EmbedBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
 const { AmiAmiApiClient } = require("./amiami-api");
 const { AmiAmiFallbackClient } = require("./amiami-fallback");
 const { CurrencyApi } = require("../currencyapi");
+const { Cache } = require("../cache");
 
 /**
  * Matches item links for AmiAmi; the returned matches are of the form "scode=code" or "gcode=code".
@@ -18,16 +19,29 @@ const currencyApi = new CurrencyApi();
  */
 const amiamiFallbackClient = new AmiAmiFallbackClient();
 
+
 /**
  * Generates a preview of an item in AmiAmi.
  */
 class AmiAmiApiPreview {
     #client;
 
+    #cache = new Cache();
+
     constructor(
         options
     ) {
         this.#client = new AmiAmiApiClient(options);
+    }
+
+    /**
+     * @returns { Promise<ReturnType<AmiAmiApiClient["item"]>> }
+     */
+    async fetch(codeType, code) {
+        if (this.#cache.has(`${codeType}=${code}`)) return this.#cache.get(`${codeType}=${code}`);
+        const item = await this.#client.item(code, codeType);
+        this.#cache.set(`${codeType}=${code}`, item);
+        return item;
     }
     
     /**
@@ -35,11 +49,14 @@ class AmiAmiApiPreview {
      * @returns {  }
      */
     async generate(match) {
-        // "matches" are expected to be of the form "scode=code" or "gcode=code".
         const [codeType, code] = match.split("=");
 
-        const item = await this.#client.item(code, codeType);
+        const item = await this.fetch(codeType, code);
+
         if (!item) return null;
+        if (!code) {
+            throw new Error("Item has no code!");
+        }
 
         if (code.startsWith("FIGURE-")) await amiamiFallbackClient.insert(Number(code.split("-")[1]), item.quarter, code.endsWith("-R")).catch(console.error);
 
@@ -72,7 +89,23 @@ class AmiAmiApiPreview {
             });
         }
 
+        const buttons = new ActionRowBuilder();
+        const images = item.images;
+        if (images.length > 0) {
+            buttons.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`amiami:${codeType}=${code}:${images.length}`)
+                    .setEmoji("◀️")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`amiami:${codeType}=${code}:${1}`)
+                    .setEmoji("▶️")
+                    .setStyle(ButtonStyle.Secondary),
+            );
+        }
+
         return {
+            components: [buttons],
             embeds: [embed]
         };
     }
@@ -115,6 +148,10 @@ class AmiAmiFallbackPreview {
     }
 }
 
+const apiPreview = new AmiAmiApiPreview({
+    domain: process.env.AMIAMI_DOMAIN ?? "amiami.com",
+});
+
 /**
  * Generates a preview of an item in AmiAmi.
  * 
@@ -131,15 +168,35 @@ const AmiAmiPreview = {
 
         return [...matches].map(match => match[0]);
     },
+
     generators: [
-        new AmiAmiApiPreview({
-            domain: process.env.AMIAMI_DOMAIN ?? "amiami.com",
-        }),
+        apiPreview,
         new AmiAmiFallbackPreview(),
     ],
     async init() {
         await amiamiFallbackClient.init();
         await currencyApi.ready;
+    },
+
+    /**
+     * @param {string} id
+     * @param {number} imageNo
+     * 
+     * @returns { Promise<{ image: string | null, totalImages: number }> }
+     */
+    async getImage(id, imageNo) {
+        const [codeType, code] = id.split("=");
+        const item = await apiPreview.fetch(codeType, code);
+        if (!item) return null;
+
+        const images = item.images
+
+        const image = imageNo === 0 ? item.image : images[imageNo - 1];
+
+        return {
+            image,
+            totalImages: images.length + 1,
+        }
     }
 }
 

@@ -76,6 +76,13 @@ class Item {
     #item
     #embedded;
 
+    /**
+     * @returns {string}
+     */
+    get code() {
+        return this.#item.gcode ?? this.#item.scode;
+    }
+
     constructor(data) {
         if (!data.RSuccess) throw new Error(`Attempt to construct Item from failed request.`);
 
@@ -176,6 +183,13 @@ class Item {
      */
     get quarter() {
         return Number(this.#item.image_category.replaceAll("/", ""));
+    }
+
+    /**
+     * @returns { string[] }
+     */
+    get images() {
+        return this.#embedded.review_images.map(image => `https://img.amiami.com/${image.image_url}`);
     }
 }
 
