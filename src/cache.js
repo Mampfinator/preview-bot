@@ -1,6 +1,8 @@
 class Cache extends Map {
     #interval;
-    #ttl = 60000;
+
+    // an hour, because most services have pretty strict API limits.
+    #ttl = 60 * 60 * 1000;
 
     constructor() {
         super();
