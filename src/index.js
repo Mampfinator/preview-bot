@@ -29,7 +29,7 @@ client.on("messageCreate", async message => {
                     const { message: messageContent, images } = preview;
                     if (!messageContent) continue;
 
-                    if (images && images > 0) {
+                    if (images && images > 1) {
                         const components = messageContent.components ??= []; 
 
                         const row = new ActionRowBuilder();
