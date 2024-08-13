@@ -89,24 +89,11 @@ class AmiAmiApiPreview {
             });
         }
 
-        const buttons = new ActionRowBuilder();
-        const images = item.images;
-        if (images.length > 0) {
-            buttons.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`amiami:${codeType}=${code}:${images.length}`)
-                    .setEmoji("◀️")
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
-                    .setCustomId(`amiami:${codeType}=${code}:${1}`)
-                    .setEmoji("▶️")
-                    .setStyle(ButtonStyle.Secondary),
-            );
-        }
-
         return {
-            components: [buttons],
-            embeds: [embed]
+            message: {
+                embeds: [embed]
+            },
+            images: item.images.length,
         };
     }
 }
@@ -130,20 +117,23 @@ class AmiAmiFallbackPreview {
         const imageBuffer = await this.#client.getImage(figureCode);
 
         return {
-            files: [
-                new AttachmentBuilder(imageBuffer, { name: `${code}.jpg` }),
-            ],
-            embeds: [
-                new EmbedBuilder()
-                    .setURL(`https://www.amiami.com/eng/detail?gcode=${code}`)
-                    .setTitle(`${code}`)
-                    .setImage(`attachment://${code}.jpg`)
-                    .setColor("#f68329")
-                    .setFooter({
-                        iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
-                        text: "⚠️ API request failed, so further details are missing."
-                    }),
-            ]
+            message: {
+                files: [
+                    new AttachmentBuilder(imageBuffer, { name: `${code}.jpg` }),
+                ],
+                embeds: [
+                    new EmbedBuilder()
+                        .setURL(`https://www.amiami.com/eng/detail?gcode=${code}`)
+                        .setTitle(`${code}`)
+                        .setImage(`attachment://${code}.jpg`)
+                        .setColor("#f68329")
+                        .setFooter({
+                            iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
+                            text: "⚠️ API request failed, so further details are missing."
+                        }),
+                ]
+            },
+            images: 1,
         }
     }
 }
@@ -159,6 +149,8 @@ const apiPreview = new AmiAmiApiPreview({
  * @see {@link AmiAmiFallbackPreview}
  */
 const AmiAmiPreview = {
+    name: "amiami",
+
     /**
      * @param {string} content
      * @returns {string[]} matches
