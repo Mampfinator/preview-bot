@@ -1,6 +1,7 @@
 const { ScrapingClient, AttachmentType } = require("@sireatsalot/youtube.js");
 const { EmbedBuilder } = require("discord.js");
 const { unwrap } = require("../util");
+const { Cache } = require("../cache");
 
 const postIdRegex =
 /(?<=youtube.com\/post\/)Ug[A-z0-9_\-]+|(?<=youtube.com\/channel\/.+\/community\?lb=)Ug[A-z0-9_\-]+/g;
@@ -8,24 +9,43 @@ const postIdRegex =
 class YouTubeCommunityPostPreview {
     #client = new ScrapingClient();
 
+    #cache = new Cache();
+
     /**
      * @param {string} match
      */
     async generate(match) {
         const postScraper = this.#client.post(match);
 
+        /**
+         * @type { import("@sireatsalot/youtube.js").CommunityPost }
+         */
         const post = await postScraper.getPost().then(unwrap);
         const channel = await postScraper.getChannelData().then(unwrap);
 
+        this.#cache.set(match, post);
+
         try {
             return {
-                embeds: [
-                    postToEmbed(post, channel)
-                ]
+                message: {
+                    embeds: [
+                        postToEmbed(post, channel)
+                    ],
+                },
+                images: post.images?.length ?? 0,
             }
         } catch (error) {
             console.error(error);
             return null;
+        }
+    }
+
+    async getImage(id, imageNo) {
+        const post = await this.#client.post(id).getPost(true).then(result => result._unsafeUnwrap());
+        
+        return {
+            image: post.images?.[imageNo],
+            totalImages: post.images?.length ?? 0,
         }
     }
 
@@ -101,11 +121,15 @@ function postToEmbed(post, channel) {
 }
 
 const YouTubePreview = {
+    name: "youtube",
     /**
      * @returns { string[] }
      */
     match(content) {
         return [...content.matchAll(postIdRegex)].map(match => typeof match == "string" ? match : match[0]);
+    },
+    getImage(id, imageNo) {
+        return this.generators[0].getImage(id, imageNo);
     },
     generators: [
         new YouTubeCommunityPostPreview(),
