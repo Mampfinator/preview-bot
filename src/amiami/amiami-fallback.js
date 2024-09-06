@@ -1,7 +1,7 @@
 const { default: axios, AxiosError } = require("axios");
-const sqlite = require("sqlite3");
-
 const { sleep } = require("../util");
+const { AmiAmiDb } = require("./amiami-db");
+const { getDriver } = require("../driver");
 
 /**
  * The fallback client for AmiAmi.
@@ -9,21 +9,15 @@ const { sleep } = require("../util");
  * Its main purpose is to at least generate image URLs in cases where the main API fails.
  */
 class AmiAmiFallbackClient {
+    /**
+     * @type {AmiAmiDb}
+     */
     #db;
 
     constructor(options) {
         const dbPath = options?.dbPath ?? process.env.DB_PATH ?? "./data.db";
 
-        this.#db = new sqlite.Database(dbPath);
-    }
-
-    async init() {
-        await new Promise((resolve, reject) => {
-            this.#db.run("CREATE TABLE IF NOT EXISTS figures (code INTEGER UNIQUE PRIMARY KEY, quarter INTEGER, preowned INTEGER)", (err) => {
-                if (err) reject(err)
-                resolve();
-            });
-        });
+        this.#db = new AmiAmiDb();
     }
 
     /**
@@ -31,10 +25,10 @@ class AmiAmiFallbackClient {
      */
     async getImage(rawCode) {
         try {
-            const [{ quarter, code, prewoned }, buffer] = await guesstimateQuarter(this.#db, rawCode);
+            const [{ quarter, code, prewoned }, buffer] = await guesstimateQuarter(getDriver(), rawCode);
             if (!buffer) return null;
             
-            await this.insert(code, quarter, prewoned);
+            await this.insertPartial(code, quarter, prewoned);
             return buffer;
         } catch (error) {
             console.error(error);
@@ -45,11 +39,12 @@ class AmiAmiFallbackClient {
     /**
      * Insert a new FIGURE-code - quarter pair into the database.
      */
-    async insert(code, quarter, preowned) {
-        return new Promise((res, rej) => this.#db.run("INSERT OR IGNORE INTO figures VALUES (?, ?, ?)", [code, quarter, preowned], (err) => {
-            if (err) rej(err);
-            res();
-        }));
+    async insertPartial(code, quarter, preowned) {
+        this.#db.insertPartial(code, quarter, preowned);
+    }
+
+    async insertFull(item) {
+        this.#db.insertFull(item);
     }
 }
 
@@ -64,9 +59,15 @@ function parseCode(rawCode) {
     }
 }
 
-function getImageBuffer(code, quarter) {
+function normalizeCode(code) {
     if (typeof code !== "string") code = String(code);
     if (code.length < 6) code = "0".repeat(6 - code.length) + code;
+
+    return code;
+}
+
+function getImageBuffer(code, quarter) {
+    code = normalizeCode(code);
 
     const url = `https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}.jpg`;
     return axios.get(url, { responseType: "arraybuffer" }).then(res => Buffer.from(res.data, "binary"));
@@ -77,6 +78,9 @@ function getImageBuffer(code, quarter) {
  * 
  * It does this by estimating the quarter from the previous and next figures we've already seen,
  * then guessing quarters around the initial estimate.
+ * 
+ * @param { import("neo4j-driver").Driver } db
+ * @param { string } rawCode
  */
 async function guesstimateQuarter(db, rawCode) {
     if (typeof rawCode != "string") throw new Error("code must be a string");
@@ -87,44 +91,27 @@ async function guesstimateQuarter(db, rawCode) {
     } = parseCode(rawCode);
 
     // find existing entry
-    const existingEntry = await new Promise((res, rej) => db.get(`SELECT quarter FROM figures WHERE code = (?)`, [code], (err, row) => {
-        if (err) rej(err);
-        res(row)
-    }));
-
-    if (existingEntry) return [existingEntry.quarter, await getImageBuffer(code, existingEntry.quarter)];
-
-
+    const existingQuarter = (await db.executeQuery(`MATCH (f:Figure { code: $code }) RETURN f.quarter AS quarter`, { code }))
+        .records[0]?.get("quarter");
+    if (existingQuarter) return [existingQuarter, await getImageBuffer(code, existingQuarter)];
 
     console.log(`Guessing quarter for ${code} (${preowned ? "preowned" : "not preowned"}).`);
+    
+    const session = db.session();
 
-    let rows = [];
+    let rows = await session.executeRead(tx => tx.run(`
+            OPTIONAL MATCH (f:Figure)
+            WHERE f.code <= $code
+            ORDER BY f.code DESC
+            LIMIT 1
 
-    const statement1 = db.prepare(`
-        SELECT quarter, code
-        FROM figures
-        WHERE code <= (?)
-        ORDER BY code DESC
-        LIMIT 1;
-    `);
+            UNION
 
-    const statement2 = db.prepare(`
-        SELECT quarter, code
-        FROM figures
-        WHERE code >= (?)
-        ORDER BY code ASC
-        LIMIT 1;
-    `);
-
-    await new Promise((resolve, reject) => statement1.all([code], (err, rows) => {
-        if (err) reject(err)
-        resolve(rows[0]);
-    })).then(row => rows.push(row));
-
-    await new Promise((resolve, reject) => statement2.all([code], (err, rows) => {
-        if (err) reject(err)
-        resolve(rows[0]);
-    })).then(row => rows.push(row));
+            OPTIONAL MATCH (f:Figure)
+            WHERE f.code >= $code
+            ORDER BY f.code ASC
+            LIMIT 1
+    `));
 
     console.log(rows);
 
@@ -300,5 +287,6 @@ class Quarter {
 }
 
 module.exports = {
+    normalizeCode,
     AmiAmiFallbackClient,
 }

@@ -3,6 +3,7 @@ const { AmiAmiApiClient } = require("./amiami-api");
 const { AmiAmiFallbackClient } = require("./amiami-fallback");
 const { CurrencyApi } = require("../currencyapi");
 const { Cache } = require("../cache");
+const { AmiAmiDb } = require("./amiami-db");
 
 /**
  * Matches item links for AmiAmi; the returned matches are of the form "scode=code" or "gcode=code".
@@ -25,7 +26,7 @@ const amiamiFallbackClient = new AmiAmiFallbackClient();
  */
 class AmiAmiApiPreview {
     #client;
-
+    #db = new AmiAmiDb();
     #cache = new Cache();
 
     constructor(
@@ -58,7 +59,7 @@ class AmiAmiApiPreview {
             throw new Error("Item has no code!");
         }
 
-        if (code.startsWith("FIGURE-")) await amiamiFallbackClient.insert(Number(code.split("-")[1]), item.quarter, code.endsWith("-R")).catch(console.error);
+        await this.#db.insertFull(item).catch(console.error);
 
         const discountRate = item.discountRate();
         const priceJpy = item.price;
@@ -70,7 +71,7 @@ class AmiAmiApiPreview {
             .setURL(`https://www.amiami.com/eng/detail?${codeType}=${code}`)
             .setDescription(`
                 **Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}
-                **Status**: ${item.saleStatus} ${!item.orderable() ? "(Out of stock)" : ""}
+                **Status**: ${item.saleStatus} ${!item.orderable ? "(Out of stock)" : ""}
                 ${item.regionLocked() ? "⚠️ This item may not be available in all regions." : ""}
             `.trim())
             .setTitle(item.name)

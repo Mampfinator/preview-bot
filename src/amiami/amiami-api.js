@@ -93,7 +93,7 @@ class Item {
     /**
      * Whether an item is currently available for order
      */
-    orderable() {
+    get orderable() {
         return Boolean(this.#item.stock);
     }
 
@@ -190,6 +190,20 @@ class Item {
      */
     get images() {
         return this.#embedded.review_images.map(image => `https://img.amiami.com/${image.image_url}`);
+    }
+
+    /**
+     * @returns { { name: string, id: number }[] }
+     */
+    get characters() {
+        return this.#embedded.character_names ?? [];
+    }
+
+    /**
+     * @returns { { name: string, id: number }[] }
+     */
+    get franchises() {
+        return this.#embedded.original_titles ?? this.#embedded.series_titles ?? [];
     }
 }
 

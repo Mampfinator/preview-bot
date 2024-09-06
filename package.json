@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "migrate": "node migrate.js"
   },
   "author": "",
   "license": "ISC",
@@ -14,6 +15,7 @@
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
     "https": "^1.0.0",
+    "neo4j-driver": "^5.24.1",
     "sqlite3": "^5.1.7"
   }
 }

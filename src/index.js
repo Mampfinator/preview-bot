@@ -2,6 +2,7 @@ require("dotenv").config();
 const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { AmiAmiPreview } = require("./amiami");
 const { YouTubePreview } = require("./youtube");
+const { setupDriver, getDriver } = require("./driver");
 
 const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
@@ -126,6 +127,12 @@ client.on("interactionCreate", async interaction => {
 });
 
 async function main() {
+    const success = await setupDriver();
+    if (!success) {
+        console.error("Failed to setup neo4j driver. Make sure neo4j is running and the credentials are configured properly.");
+        return;
+    }
+
     for (const matcher of client.previews) {
         for (const generator of matcher.generators) {
             await generator.init?.();
