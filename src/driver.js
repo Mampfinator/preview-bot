@@ -18,11 +18,16 @@ function getDriver() {
     return driver;
 }
 
-const CONSTRAINTS = [
-    ["Figure", "code"],
-    ["Character", "id"],
-    ["Franchise", "id"],
-]
+const CONSTRAINTS = {
+    node: [
+        ["Figure", "code"],
+        ["Character", "id"],
+        ["Franchise", "id"],
+        ["User", "id"],
+        ["Guild", "id"],
+    ],
+    relationship: []
+}
 
 async function setupDriver() {
     const driver = getDriver();
@@ -36,11 +41,18 @@ async function setupDriver() {
     try {
         const transaction = await session.beginTransaction();
 
-        for (const [label, property] of CONSTRAINTS) {
+        for (const [label, property] of CONSTRAINTS.node) {
             await transaction.run(`
                 CREATE CONSTRAINT ${label.toLowerCase()}_${property}_unique IF NOT EXISTS 
                 FOR (n:${label}) REQUIRE n.${property} IS UNIQUE
             `);
+        }
+
+        for (const [label, property] of CONSTRAINTS.relationship) {
+            await transaction.run(`
+                CREATE CONSTRAINT ${label.toLowerCase()}_${property}_unique IF NOT EXISTS 
+                FOR ()-[r:${label}]-() REQUIRE r.${property} IS UNIQUE
+            )`);
         }
 
         await transaction.commit();
@@ -56,7 +68,12 @@ async function setupDriver() {
     return success;
 }
 
+function getSession() {
+    return driver.session();
+}
+
 module.exports = {
     getDriver,
     setupDriver,
+    getSession,
 }

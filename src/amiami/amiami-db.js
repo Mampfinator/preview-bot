@@ -93,6 +93,8 @@ class AmiAmiDb {
                 code: dbItem.code,
             }));
         }
+
+        return session.close();
     }
 }
 

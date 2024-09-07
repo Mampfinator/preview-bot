@@ -136,6 +136,7 @@ async function guesstimateQuarter(db, rawCode) {
             console.log(`Found image for ${code} in ${quarter.toString()}.`);
 
             if (imageBuffer) {
+                await session.close();
                 return [{code, preowned, quarter: quarter.toString()}, imageBuffer];
             }
         } catch (error) {
@@ -155,6 +156,7 @@ async function guesstimateQuarter(db, rawCode) {
         }
     }
 
+    await session.close();
     return [null, null];
 }
 

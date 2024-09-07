@@ -2,7 +2,9 @@ require("dotenv").config();
 const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { AmiAmiPreview } = require("./amiami");
 const { YouTubePreview } = require("./youtube");
-const { setupDriver, getDriver } = require("./driver");
+const { setupDriver } = require("./driver");
+const { FigureCollection } = require("./collection/figure-collection");
+const { COMMANDS } = require("./commands");
 
 const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
@@ -70,6 +72,7 @@ client.on("interactionCreate", async interaction => {
     if (!interaction.isButton()) return;
 
     const [service, id, imageNoStr] = interaction.customId.split(":");
+    if (!service || !id || !imageNoStr) return;
 
     const preview = client.previews.find(g => g.name === service);
     if (!preview) {
@@ -124,6 +127,39 @@ client.on("interactionCreate", async interaction => {
         embeds: [embed.setImage(image)], 
         components
     }).catch(console.error);
+});
+
+const figureCollection = new FigureCollection(client);
+
+client.on("interactionCreate", async interaction => {
+    if (!interaction.isButton()) return;
+
+    const [claim, code] = interaction.customId.split(":");
+    if (!claim || claim !== "claim" || !code) return;
+
+    try {
+        const claimed = await figureCollection.claim(code, interaction.member);
+
+        if (claimed) {
+            await interaction.message.reply({ content: `Claimed by ${interaction.member.displayName}.` }).catch(console.error);
+            await interaction.reply({ content: "Figure claimed.", ephemeral: true }).catch(console.error);
+            await interaction.message.edit({ components: [] }).catch(console.error);
+        } else {
+            await interaction.reply({ content: "Already claimed. Better luck next time!", ephemeral: true }).catch(console.error);
+        }
+    } catch (error) {
+        console.error(error);
+        await interaction.reply({ content: "Something went wrong!", ephemeral: true }).catch(console.error);
+    }
+});
+
+client.on("interactionCreate", async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+    
+    const handler = COMMANDS.find(c => c.data.name === interaction.commandName);
+    if (!handler) return;
+
+    await handler.handler(interaction);
 });
 
 async function main() {
