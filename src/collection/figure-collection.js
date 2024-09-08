@@ -84,4 +84,5 @@ class FigureCollection {
 
 module.exports = {
     FigureCollection,
+    parseCode,
 }
