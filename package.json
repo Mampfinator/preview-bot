@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@atproto/api": "^0.13.12",
     "@sireatsalot/youtube.js": "github:Mampfinator/youtube.js",
     "axios": "^1.6.8",
     "discord.js": "^14.14.1",
