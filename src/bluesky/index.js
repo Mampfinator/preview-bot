@@ -5,6 +5,19 @@ const { Colors } = require("discord.js");
 const BLUESKY_FEED_URL_REGEX = /https\:\/\/bsky\.app\/profile\/[A-Za-z0-9\-\:\_\.]+\/feed\/[A-Za-z0-9\-]+/g;
 
 /**
+ * @param {string} url Bluesky feed URL matching `https://bsky.app/profile/<user>/feed/<feed>`.
+ * @returns {[string, string]} a `[userId, feedId]` tuple. `userId` may be a DID or a handle. Handles can be resolved using `agent.com.atproto.identity.resolveHandle`.
+ */
+function idsFromFeedUrl(url) {
+    let [userId, feedId] = url.split("/feed/");
+
+    userId = userId.split("/").pop();
+    feedId = feedId.replaceAll("/", "");
+
+    return [userId, feedId];
+}
+
+/**
  * Previews Bluesky feeds.
  */
 class BlueskyFeedPreview {
@@ -22,23 +35,21 @@ class BlueskyFeedPreview {
     }
 
     /**
-     * 
      * @param {string} match 
      */
     async generate(match) {
-        let [userId, feedId] = match.split("/feed/");
-
-        userId = userId.split("/").pop();
-        feedId = feedId.replaceAll("/", "");
+        let [userId, feedId] = idsFromFeedUrl(match);
 
         if (!isDid(userId)) {
             const { data, success } = await this.#agent.com.atproto.identity.resolveHandle({
                 handle: userId
             });
 
-            if (!success) return console.log(`Failed to resolve DID for ${userId}`);
+            if (!success) return console.error(`Failed to resolve DID for ${userId}`);
 
             const { did } = data;
+
+            // Just to be *absolutely* sure, assert that the returned DID is valid.
             userId = asDid(did);
         }
 
