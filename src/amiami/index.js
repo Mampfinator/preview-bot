@@ -66,11 +66,16 @@ class AmiAmiApiPreview {
         const conversionRate = currencyApi.conversionRate;
         const priceUsd = priceJpy / conversionRate;
         
+        let footerText = `Price in USD based on a conversion rate of 1 USD ≈ ${conversionRate.toFixed(2)} JPY.`;
+        if (item.partial) {
+            footerText = "⚠️ API only partially available, information may be incomplete · " + footerText;
+        }
+
         const embed = new EmbedBuilder()
             .setURL(`https://www.amiami.com/eng/detail?${codeType}=${code}`)
             .setDescription(`
                 **Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}
-                **Status**: ${item.saleStatus} ${!item.orderable() ? "(Out of stock)" : ""}
+                **Status**: ${item.saleStatus} ${item.orderable() === undefined ? "" : !item.orderable() ? "(Out of stock)" : ""}
                 ${item.regionLocked() ? "⚠️ This item may not be available in all regions." : ""}
             `.trim())
             .setTitle(item.name)
@@ -79,7 +84,7 @@ class AmiAmiApiPreview {
             .setColor("#f68329")
             .setFooter({
                 iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
-                text: `Price in USD based on a conversion rate of 1 USD ≈ ${conversionRate.toFixed(6)} JPY.`
+                text: footerText,
             });
         
         if (item.spec && item.spec.length > 0) {

@@ -1,6 +1,84 @@
 const axios = require("axios");
 const https = require("https");
 
+/**
+ * @param {string} data
+ * @returns {object}
+ */
+function fixJson(data) {
+    /**
+     * @type { Record<string, number[]>}
+     */
+    const seen = {
+        "{": [],
+        "[": [],
+        "\"": []
+    };
+
+    const closing = {
+        "}": "{",
+        "]": "[",
+    };
+
+    const inString = () => seen["\""].length > 0;
+
+    let openDeclaration = true;
+    let isAssignment = false;
+
+    const opening = Object.fromEntries(Object.entries(closing).map(([key, value]) => [value, key]));
+    opening["\""] = "\"";
+
+    for (let i = 0; i < data.length; i++) {
+        const char = data[i];
+
+        if (char === ":" && !inString()) {
+            isAssignment = true; 
+        // object and array termination
+        } else if (char === ",") {
+            isAssignment = false;
+        } else if (char in closing) {
+            const openingChar = closing[char]
+            seen[openingChar].shift();
+            isAssignment = false;
+        // string termination
+        } else if (char === "\"" && inString()) {
+            seen["\""].shift();
+            if (openDeclaration) {
+                openDeclaration = false;
+            }
+        // object, array and string start
+        } else if (char in seen) {
+            if (char === "\"" && !isAssignment) {
+                openDeclaration = true;
+            }
+            seen[char].unshift(i);
+        }
+    }
+
+    console.log(openDeclaration, isAssignment);
+
+    // if we started a property declaration and didn't finish it, 
+    // *or* if we finished writing out the property name, but never got any value for it at all, 
+    // remove it.
+    if (openDeclaration || !isAssignment) {
+        seen["\""].shift();
+        data = data.replace(/,["a-zA-Z_-]+$/, "");
+    }
+
+    const closeWith = Object.entries(seen)
+        .map(([char, indices]) => indices.
+            map(idx => [idx, char])
+        ).flat()
+        .sort(([a], [b]) => b - a)
+        .map(([, char]) => opening[char]);
+
+    const fixed = data + closeWith.join("");
+    
+    console.log(fixed);
+
+    return JSON.parse(fixed);
+}
+
 class AmiAmiApiClient {
     /**
      * Used to make requests to the AmiAmi API.
@@ -54,6 +132,16 @@ class AmiAmiApiClient {
             });
 
             const data = response.data;
+
+            // sometimes (especially when normal API access is blocked) we get a
+            // **partial** response with an incomplete JSON string back
+            // so we fix it up and parse what we can.
+            if (typeof data === "string") {
+                const parsed = fixJson(data);
+                console.log(parsed);
+                return new Item(parsed, true);
+            }
+
             return new Item(data);
         } catch (error) {
             if (!(error instanceof axios.AxiosError)) throw error;
@@ -73,8 +161,9 @@ class AmiAmiApiClient {
  * Represents an item from the AmiAmi API.
  */
 class Item {
-    #item
+    #item;
     #embedded;
+    partial;
 
     /**
      * @returns {string}
@@ -83,18 +172,24 @@ class Item {
         return this.#item.gcode ?? this.#item.scode;
     }
 
-    constructor(data) {
+    constructor(data, partial = false) {
         if (!data.RSuccess) throw new Error(`Attempt to construct Item from failed request.`);
 
         this.#item = data.item;
         this.#embedded = data._embedded;
+        this.partial = partial;
     }
 
     /**
-     * Whether an item is currently available for order
+     * Whether an item is currently available for order.
+     * @returns {boolean | undefined}
      */
     orderable() {
-        return Boolean(this.#item.stock);
+        const stock = this.#item?.stock;
+        if (stock === undefined) {
+            return;
+        }
+        return Boolean(stock);
     }
 
     /**
@@ -126,8 +221,7 @@ class Item {
      * @type {string | undefined}
      */
     get remarks() {
-        const remarks = this.#item.remarks;
-        
+        const remarks = this.#item?.remarks;
         return remarks && remarks.length > 0 ? remarks : undefined;
     }
 
@@ -182,14 +276,19 @@ class Item {
      * This is mainly used for fallback previews.
      */
     get quarter() {
-        return Number(this.#item.image_category.replaceAll("/", ""));
+        try {
+            return Number(this.#item.image_category.replaceAll("/", ""));
+        } catch {
+            const quarter = this.#item.main_image_url.split("/").at(-2);
+            return Number(quarter);
+        }
     }
 
     /**
      * @returns { string[] }
      */
     get images() {
-        return this.#embedded.review_images.map(image => `https://img.amiami.com/${image.image_url}`);
+        return this.#embedded?.review_images.map(image => `https://img.amiami.com/${image.image_url}`) ?? [];
     }
 }
 
