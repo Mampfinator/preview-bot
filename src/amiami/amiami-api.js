@@ -65,6 +65,10 @@ function fixJson(data) {
         data = data.replace(/,["a-zA-Z_-]+$/, "");
     }
 
+    // in very rare cases, a string might end with an invalid unicode escape sequence 
+    // (like FIGURE-178121, which ends with just `\u`) and thus causes the default JSON parser to throw.
+    data = data.replace(/\\u[A-Za-z0-9]{0,3}$/, "");
+
     const closeWith = Object.entries(seen)
         .map(([char, indices]) => indices.
             map(idx => [idx, char])
