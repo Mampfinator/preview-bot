@@ -60,24 +60,32 @@ class AmiAmiApiPreview {
 
         if (code.startsWith("FIGURE-")) await amiamiFallbackClient.insert(Number(code.split("-")[1]), item.quarter, code.endsWith("-R")).catch(console.error);
 
-        const discountRate = item.discountRate();
-        const priceJpy = item.price;
+        let description = "";
+        if (typeof item.price === "number") {
+            const discountRate = item.discountRate();
+            const priceJpy = item.price;
 
-        const conversionRate = currencyApi.conversionRate;
-        const priceUsd = priceJpy / conversionRate;
+            const conversionRate = currencyApi.conversionRate;
+            const priceUsd = priceJpy / conversionRate;
+            description = `**Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}`;
+        }
+
+        if (item.saleStatus) {
+            description += `\n**Status**: ${item.saleStatus} ${item.orderable() === undefined ? "" : !item.orderable() ? "(Out of stock)" : ""}`
+        }
+
+        if (item.regionLocked()) {
+            description += "⚠️ This item may not be available in all regions.";
+        }
+
         
-        let footerText = `Price in USD based on a conversion rate of 1 USD ≈ ${conversionRate.toFixed(2)} JPY.`;
+        let footerText = `Price in USD based on a conversion rate of 1 USD ≈ ${currencyApi.conversionRate.toFixed(2)} JPY.`;
         if (item.partial) {
             footerText = "⚠️ API only partially available, information may be incomplete · " + footerText;
         }
 
         const embed = new EmbedBuilder()
             .setURL(`https://www.amiami.com/eng/detail?${codeType}=${code}`)
-            .setDescription(`
-                **Price**: ¥${Math.trunc(priceJpy)} / $${priceUsd.toFixed(2)} ${discountRate > 0 ? `(${discountRate}% off)` : ""}
-                **Status**: ${item.saleStatus} ${item.orderable() === undefined ? "" : !item.orderable() ? "(Out of stock)" : ""}
-                ${item.regionLocked() ? "⚠️ This item may not be available in all regions." : ""}
-            `.trim())
             .setTitle(item.name)
             .setImage(item.image)
             // random color from the amiami logo
@@ -86,6 +94,10 @@ class AmiAmiApiPreview {
                 iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
                 text: footerText,
             });
+
+        if (description.length > 0) {
+            embed.setDescription(description);
+        }
         
         if (item.spec && item.spec.length > 0) {
             embed.addFields({

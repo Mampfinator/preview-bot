@@ -37,7 +37,7 @@ function fixJson(data) {
 
     const opening = Object.fromEntries(Object.entries(closing).map(([key, value]) => [value, key]));
     opening["\""] = "\"";
-    const escaped = false;
+    let escaped = false;
 
     for (let i = 0; i < data.length; i++) {
         const char = data[i];
@@ -244,6 +244,11 @@ class Item {
      * @returns {number} the total discount rate.
      */
     discountRate() {
+        // for partial responses, we might not have all discount rates available.
+        if (!this.#item.discountrate1) {
+            return 0;
+        }
+
         return this.#item.discountrate1 +
             this.#item.discountrate2 +
             this.#item.discountrate3 + 
@@ -261,7 +266,7 @@ class Item {
     }
 
     /**
-     * @type { "Released" | "Pre-Order" }
+     * @type { "Released" | "Pre-Order" | undefined }
      */
     get saleStatus() {
         return this.#item.salestatus
@@ -279,7 +284,7 @@ class Item {
     /**
      * The full price with taxes and all discounts applied.
      * 
-     * @type { number }
+     * @type { number | undefined }
      */
     get fullPrice() {
         return this.#item.c_price_taxed;
@@ -288,7 +293,7 @@ class Item {
     /**
      * The base price for this item.
      * 
-     * @type { number }
+     * @type { number | undefined }
      */
     get price() {
         return this.#item.price;
