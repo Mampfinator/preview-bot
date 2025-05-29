@@ -172,7 +172,16 @@ class AmiAmiApiClient {
                 }
             }
 
-            return new Item(data);
+            const item = new Item(data);
+
+            // Potentially, we could get a partial response without an image in the item object.
+            // In that case, there is probably no usable data in the response at all, so
+            // we force the fallback client to take over. 
+            if (!item.image) {
+                throw new Error("Item does not have an image. Forcing fallback client.");
+            }
+            
+            return item;
         } catch (error) {
             if (!(error instanceof axios.AxiosError)) throw error;
 
