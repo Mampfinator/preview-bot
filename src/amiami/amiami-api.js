@@ -2,10 +2,20 @@ const axios = require("axios");
 const https = require("https");
 
 /**
+ * Attempt to recover whatever we can from a broken JSON string.
+ * 
+ * The algorithm is dead simple, and only cares about closing unmatched brackets and quotes, as well
+ * as removing trailing commas and deleting a dangling property name.
+ * 
  * @param {string} data
- * @returns {object}
+ * @returns {string}
  */
 function fixJson(data) {
+    // remove trailing commas
+    if (data.endsWith(",")) {
+        data = data.slice(0, -1);
+    }
+
     /**
      * @type { Record<string, number[]>}
      */
@@ -27,35 +37,44 @@ function fixJson(data) {
 
     const opening = Object.fromEntries(Object.entries(closing).map(([key, value]) => [value, key]));
     opening["\""] = "\"";
+    const escaped = false;
 
     for (let i = 0; i < data.length; i++) {
         const char = data[i];
 
-        if (char === ":" && !inString()) {
-            isAssignment = true; 
-        // object and array termination
-        } else if (char === ",") {
-            isAssignment = false;
-        } else if (char in closing) {
-            const openingChar = closing[char]
-            seen[openingChar].shift();
-            isAssignment = false;
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+
+        if (!inString()) {
+            if (char === ":" && !inString()) {
+                isAssignment = true; 
+            // object and array termination
+            } else if (char === ",") {
+                isAssignment = false;
+            } else if (char in closing) {
+                const openingChar = closing[char]
+                seen[openingChar].shift();
+                isAssignment = false;
+            // object, array and string start
+            } else if (char in seen) {
+                if (char === "\"" && !isAssignment) {
+                    openDeclaration = true;
+                }
+                seen[char].unshift(i);
+            }
         // string termination
-        } else if (char === "\"" && inString()) {
+        } else if (char === "\"") {
             seen["\""].shift();
             if (openDeclaration) {
                 openDeclaration = false;
             }
-        // object, array and string start
-        } else if (char in seen) {
-            if (char === "\"" && !isAssignment) {
-                openDeclaration = true;
-            }
-            seen[char].unshift(i);
+        // escape character
+        } else if (char === "\\") {
+            escaped = true;
         }
     }
-
-    console.log(openDeclaration, isAssignment);
 
     // if we started a property declaration and didn't finish it, 
     // *or* if we finished writing out the property name, but never got any value for it at all, 
@@ -77,10 +96,10 @@ function fixJson(data) {
         .map(([, char]) => opening[char]);
 
     const fixed = data + closeWith.join("");
-    
-    console.log(fixed);
 
-    return JSON.parse(fixed);
+    // For debugging purposes, we don't parse the JSON here, but just return the fixed string.
+    // In case of an error, we want to be able to see the original and the fixed string.
+    return fixed;
 }
 
 class AmiAmiApiClient {
@@ -138,12 +157,19 @@ class AmiAmiApiClient {
             const data = response.data;
 
             // sometimes (especially when normal API access is blocked) we get a
-            // **partial** response with an incomplete JSON string back
-            // so we fix it up and parse what we can.
+            // **partial** response with an incomplete JSON string back.
+            // `fixJson` will attempt to fix up what we have and make it valid JSON.
+            // Especially the last field 
             if (typeof data === "string") {
-                const parsed = fixJson(data);
-                console.log(parsed);
-                return new Item(parsed, true);
+                const fixed = fixJson(data);
+                try {
+                    return new Item(JSON.parse(fixed), true);
+                } catch (error) {
+                    console.error("Failed to parse partial response from AmiAmi API.");
+                    console.error("Data: ", data);
+                    console.error("Fixed: ", fixed);
+                    throw error;
+                }
             }
 
             return new Item(data);
@@ -167,6 +193,11 @@ class AmiAmiApiClient {
 class Item {
     #item;
     #embedded;
+
+    /**
+     * Whether the item was constructed from a partial response.
+     * @type {boolean}
+     */
     partial;
 
     /**
@@ -280,18 +311,18 @@ class Item {
      * This is mainly used for fallback previews.
      */
     get quarter() {
-        try {
-            return Number(this.#item.image_category.replaceAll("/", ""));
-        } catch {
-            const quarter = this.#item.main_image_url.split("/").at(-2);
-            return Number(quarter);
-        }
+        const quarter = this.image.split("/").at(-2);
+        return Number(quarter);
     }
 
     /**
      * @returns { string[] }
      */
     get images() {
+        // TODO: there should be a way to get images from the fallback client.
+        // The preview image URLs are structured like https://img.amiami.com/images/product/review/:quarter/:gcode_:n.jpg
+        // where `:n` is a (0-padded, 2 digit) number starting from 1.
+
         return this.#embedded?.review_images.map(image => `https://img.amiami.com/${image.image_url}`) ?? [];
     }
 }
