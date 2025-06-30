@@ -16,6 +16,9 @@ function fixJson(data) {
         data = data.slice(0, -1);
     }
 
+    // remove trailing incomplete `null`s
+    data = data.replace(/(?<!=\")nu?l?(?=\}*$)/, "null");
+
     /**
      * @type { Record<string, number[]>}
      */
