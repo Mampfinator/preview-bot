@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { AmiAmiPreview } = require("./amiami");
-const { YouTubePreview } = require("./youtube");
+const { YouTubeCommunityPostPreview, YouTubeCommentPreview } = require("./youtube");
 const { BlueskyPreview } = require("./bluesky");
 
 const client = new Client({
@@ -11,7 +11,8 @@ const client = new Client({
 
 client.previews = [
     AmiAmiPreview,
-    YouTubePreview,
+    YouTubeCommunityPostPreview,
+    YouTubeCommentPreview,
     BlueskyPreview,
 ];
 
@@ -129,6 +130,7 @@ client.on("interactionCreate", async interaction => {
 
 async function main() {
     for (const matcher of client.previews) {
+        await matcher.init?.();
         for (const generator of matcher.generators) {
             await generator.init?.();
         }
