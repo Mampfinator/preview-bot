@@ -1,52 +1,64 @@
 const { EmbedBuilder } = require("@discordjs/builders");
-const { ScrapingClient } = require("@sireatsalot/youtube.js");
+const { ScrapingClient, YouTubeClient } = require("@sireatsalot/youtube.js");
 
 // yes this is excessive.
-const REGEX = /https:\/\/(www?\.)youtube\.com\/(watch([^ ]+)?|(post|shorts)\/([^ ]+)?)*&lc=[A-Za-z0-9-_]+/g;
+const REGEX = /https:\/\/(www\.)?youtube\.com\/(post|shorts)\/[^ ]+?lc=[A-Za-z0-9-_]+|https:\/\/(www\.)?youtube\.com\/watch\?v=[A-Za-z0-9-_]+&lc=[A-Za-z0-9-_]+/g;
 
 class YouTubeVideoCommentsPreviewGenerator {
     /**
      * @type {ScrapingClient} client
      */
-    client;
+    scrapingClient;
+
+    /**
+     * 
+     * @param {APIClient} client 
+     */
     
     constructor(client) {
-        this.client = client;
+        this.scrapingClient = client;
+        this.apiClient = new YouTubeClient({key: process.env.YOUTUBE_API_KEY});
     }
 
     async generate(match) {
         if (!match.includes("watch")) return null;
 
-        const params = new URL(match).searchParams;
-        const videoId = params.get("v");
-        const commentId = params.get("lc");
+        const comments = await this.apiClient.comments.list({
+            part: ["snippet", "id"],
+            id: match.split("lc=")[1],
+        });
 
-        if (!videoId || !commentId) return null;
+        if (comments.isErr()) {
+            throw comments.error;
+        }
 
-        const result = await this.client.video(videoId, commentId)
-            .fetchComments();
-
-        const comments = result._unsafeUnwrap();
-
-        const comment = await comments.fetchHighlightedComment();
+        const comment = comments.value[0];
 
         if (!comment) return null;
-
         return {
             message: {
                 embeds: [
-                    new EmbedBuilder()
-                        .setAuthor({
-                            name: comment.author.name,
-                            iconURL: comment.author.avatarUrl,
-                            url: `https://www.youtube.com/channel/${comment.author.id}`,
-                        })
-                        .setDescription(comment.content)
-                        .setColor(0xFF0000)
+                    apiCommentToEmbed(comment)
                 ]
             }
-        };
+        }
     }
+}
+
+function apiCommentToEmbed(comment) {
+    const { snippet } = comment;
+    return new EmbedBuilder()
+        .setDescription(snippet.textOriginal)
+        .setAuthor({
+            name: `Comment by ${snippet.authorDisplayName}`,
+            iconURL: snippet.authorProfileImageUrl,
+            url: `https://www.youtube.com/channel/${snippet.authorChannelId.value}`,
+        })
+        .setColor(0xFF0000)
+        .setFooter({
+            text: "ID: " + comment.id,
+            iconURL: "https://www.youtube.com/img/favicon_144.png"
+        });
 }
 
 class YouTubeShortsCommentsPreviewGenerator {
@@ -59,8 +71,33 @@ class YouTubeShortsCommentsPreviewGenerator {
         this.client = client;
     }
 
+
     async generate(match) {
-        return null;
+        if (!match.includes("shorts")) return null;
+
+        const url = new URL(match);
+
+        const videoId = url.pathname.split("/").pop();
+        const commentId = url.searchParams.get("lc");
+
+        if (!videoId || !commentId) return null;
+
+        const result = await this.client.short(videoId, commentId)
+            .fetchComments();
+
+        const comments = result._unsafeUnwrap();
+
+        const comment = await comments.fetchHighlightedComment();
+
+        if (!comment) return null;
+
+        return {
+            message: {
+                embeds: [
+                    commentToEmbed(comment)
+                ]
+            }
+        };
     }
 }
 
@@ -75,10 +112,48 @@ class YouTubePostCommentsPreviewGenerator {
     }
 
     async generate(match) {
-        return null;
+        if (!match.includes("post")) return null;
+
+        const url = new URL(match);
+
+        const postId = url.pathname.split("/").pop();
+        const commentId = url.searchParams.get("lc");
+
+        if (!postId || !commentId) return null;
+
+        const result = await this.client.post(postId, commentId)
+            .fetchComments();
+
+        const comments = result._unsafeUnwrap();
+
+        const comment = await comments.fetchHighlightedComment();
+
+        if (!comment) return null;
+
+        return {
+            message: {
+                embeds: [
+                    commentToEmbed(comment)
+                ]
+            }
+        };
     }
 }
 
+function commentToEmbed(comment) {
+    return new EmbedBuilder()
+        .setAuthor({
+            name: `Comment by ${comment.author.name}`,
+            iconURL: comment.author.avatar,
+            url: `https://www.youtube.com/channel/${comment.author.id}`,
+        })
+        .setDescription(comment.content)
+        .setColor(0xFF0000)
+        .setFooter({
+            text: "ID: " + comment.id,
+            iconURL: "https://www.youtube.com/img/favicon_144.png"
+        })
+}
 
 class YouTubeCommentPreview {
     client;
