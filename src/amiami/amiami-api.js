@@ -90,6 +90,11 @@ function fixJson(data) {
     // in very rare cases, a string might end with an invalid unicode escape sequence 
     // (like FIGURE-178121, which ends with just `\u`) and thus causes the default JSON parser to throw.
     data = data.replace(/\\u[A-Za-z0-9]{0,3}$/, "");
+    
+    // Very rarely (like with FIGURE-157860-R), we get a dangling property name that also happens to have the assignment operator at the end.
+    // Our default case for dangling properties doesn't seem to handle that, so we add a special case for it here, since it's
+    // easy enough to handle with regex alone.
+    data = data.replace(/,\"[A-Za-z0-9-_]+\"\:$/, "");
 
     const closeWith = Object.entries(seen)
         .map(([char, indices]) => indices.
