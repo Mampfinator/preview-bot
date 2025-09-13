@@ -1,70 +1,102 @@
 require("dotenv").config();
-const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events } = require("discord.js");
 const { AmiAmiPreview } = require("./amiami");
 const { YouTubeCommunityPostPreview, YouTubeCommentPreview } = require("./youtube");
 const { BlueskyPreview } = require("./bluesky");
+const { registerContextInteractions } = require("./context-interaction");
 
 const client = new Client({
     intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
 });
 
+class ClientPreviews {
+    /**
+     * @type { Client }
+     */
+    client;
 
-client.previews = [
+    constructor(client, providers) {
+        this.client = client;
+        this.previewProviders = providers;
+    }
+
+    async init() {
+        for (const matcher of this.previewProviders) {
+            await matcher.init?.();
+            for (const generator of matcher.generators) {
+                await generator.init?.();
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {string} content
+     * @returns {AsyncGenerator<import("discord.js").MessageCreateOptions>} 
+     */
+    async *generateFromContent(content) {
+        for (const group of this.previewProviders) {
+            // Dedupe matches. Messages may contain the same item multiple times, 
+            // but we only want to preview it once.
+            const matches = new Set(group.match(content));
+            matches: for (const match of matches) {
+                for (const generator of group.generators) {
+                    try {
+                        const preview = await generator.generate(match);
+                        if (!preview) continue;
+
+                        const { message: messageContent, images } = preview;
+                        if (!messageContent) continue;
+
+                        if (images && images > 1) {
+                            const components = messageContent.components ??= [];
+
+                            const row = new ActionRowBuilder();
+
+                            if (images > 2) {
+                                row.addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId(`${group.name}:${match}:${images - 1}`)
+                                        .setEmoji("◀️")
+                                        .setStyle(ButtonStyle.Secondary)
+                                );
+                            }
+
+                            row.addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId(`${group.name}:${match}:${1}`)
+                                    .setEmoji("▶️")
+                                    .setStyle(ButtonStyle.Secondary)
+                            );
+
+                            components.push(row);
+                        }
+
+                        yield messageContent;
+                        // we take the first result for every match.
+                        continue matches;
+                    } catch (error) {
+                        console.error(error);
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+}
+
+client.previews = new ClientPreviews(client, [
     AmiAmiPreview,
     YouTubeCommunityPostPreview,
     YouTubeCommentPreview,
     BlueskyPreview,
-];
+]);
 
 client.on("messageCreate", async message => {
     if (message.author.bot) return;
 
-    for (const group of client.previews) {
-        // Dedupe matches. Messages may contain the same item multiple times, 
-        // but we only want to preview it once.
-        const matches = new Set(group.match(message.content));
-        matches: for (const match of matches) {
-            for (const generator of group.generators) {
-                try {
-                    const preview = await generator.generate(match);
-                    if (!preview) continue;
-
-                    const { message: messageContent, images } = preview;
-                    if (!messageContent) continue;
-
-                    if (images && images > 1) {
-                        const components = messageContent.components ??= []; 
-
-                        const row = new ActionRowBuilder();
-
-                        if (images > 2) {
-                            row.addComponents(
-                                new ButtonBuilder()
-                                    .setCustomId(`${group.name}:${match}:${images - 1}`)
-                                    .setEmoji("◀️")
-                                    .setStyle(ButtonStyle.Secondary)
-                            );
-                        }
-
-                        row.addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(`${group.name}:${match}:${1}`)
-                                .setEmoji("▶️")
-                                .setStyle(ButtonStyle.Secondary)
-                        );
-
-                        components.push(row);
-                    }
-
-                    await message.reply({...messageContent, allowedMentions: { parse: [] }}).catch(console.error);
-                    // we take the first result for every match.
-                    continue matches;
-                } catch (error) {
-                    console.error(error);
-                    continue;
-                }
-            }
-        }
+    for await (const preview of client.previews.generateFromContent(message.content)) {
+        await message.reply({...preview, allowedMentions: { parse: []}}).catch(console.error);
     }
 })
 
@@ -73,7 +105,7 @@ client.on("interactionCreate", async interaction => {
 
     const [service, id, imageNoStr] = interaction.customId.split(":");
 
-    const preview = client.previews.find(g => g.name === service);
+    const preview = client.previews.previewProviders.find(g => g.name === service);
     if (!preview) {
         await interaction.reply({ content: "Unknown service.", ephemeral: true }).catch(console.error);
         return;
@@ -129,15 +161,11 @@ client.on("interactionCreate", async interaction => {
 });
 
 async function main() {
-    for (const matcher of client.previews) {
-        await matcher.init?.();
-        for (const generator of matcher.generators) {
-            await generator.init?.();
-        }
-    }
-
+    await client.previews.init();
     await client.login(process.env.DISCORD_TOKEN);
     console.log(`Logged into Discord as ${client.user.tag}.`);
+
+    registerContextInteractions(client);
 }
 
 main();
