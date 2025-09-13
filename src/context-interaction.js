@@ -22,7 +22,8 @@ function registerContextInteractions(client) {
         }
     });
 
-    client.application.commands.create([interaction, interactionPrivate]);
+    client.application.commands.create(interaction);
+    client.application.commands.create(interactionPrivate);
 }
 
 const interaction = new ContextMenuCommandBuilder()
