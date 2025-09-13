@@ -7,11 +7,11 @@ const { Client, ContextMenuCommandBuilder, InteractionType, InteractionContextTy
 function registerContextInteractions(client) {
     client.on("interactionCreate", async interaction => {
         if (!interaction.isMessageContextMenuCommand()) return;
-        if (interaction.commandName.startsWith("Preview")) return;
+        if (!interaction.commandName.startsWith("Preview")) return;
 
         const flags = interaction.commandName.includes("(Private)") ? MessageFlags.Ephemeral : 0;
 
-        await interaction.deferReply(flags);
+        await interaction.deferReply({flags})
 
         for await (const message of client.previews.generateFromContent(interaction.targetMessage.content)) {
             if (!interaction.deferred && !interaction.replied) {
