@@ -1,10 +1,9 @@
 # Preview Bot
 
-Generates embed previews for sites that don't natively support it, such as [AmiAmi](https://amiami.com) and YouTube community posts
-(which for some reason only embed channel metadata instead by default).
+Generates embed previews for sites that don't natively support it, such as [AmiAmi](https://amiami.com) and YouTube comments.
 
-> [!NOTE]
-> The bot is currently semi-private. If you'd like to use my instance, reach out to me on Discord!
+Click [here](https://discord.com/oauth2/authorize?client_id=1233459980976521216) to invite the bot or install it to your profile.
+
 # Examples
 
 ## AmiAmi
