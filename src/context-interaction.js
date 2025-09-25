@@ -1,4 +1,4 @@
-const { Client, ContextMenuCommandBuilder, InteractionType, InteractionContextType, ApplicationCommandType, ApplicationIntegrationType, MessageFlags } = require("discord.js");
+const { Client, ContextMenuCommandBuilder, InteractionType, InteractionContextType, ApplicationCommandType, ApplicationIntegrationType, MessageFlags, EmbedBuilder } = require("discord.js");
 
 /**
  * 
@@ -13,12 +13,25 @@ function registerContextInteractions(client) {
 
         await interaction.deferReply({flags})
 
+        let sentAny = false;
+
         for await (const message of client.previews.generateFromContent(interaction.targetMessage.content)) {
             if (!interaction.deferred && !interaction.replied) {
                 await interaction.editReply({...message}).catch(console.error);
+                sentAny = true;
             } else {
                 await interaction.followUp({...message, flags}).catch(console.error);
             }
+        }
+
+        if (!sentAny) {
+            await interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription(":x: Nothing to preview!")
+                        .setColor("Red")
+                ]
+            }).catch(console.error);
         }
     });
 
