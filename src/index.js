@@ -116,13 +116,14 @@ const previewProviders = [
     BlueskyPreview,
 ]
 
-if (process.env.NODE_ENV !== "production") {
-    const { DebugPreviewGroup} = require("./debug-preview");
-
-    previewProviders.push(DebugPreviewGroup);
-}
-
 client.previews = new ClientPreviews(client, previewProviders);
+
+
+if (process.env.NODE_ENV !== "production") {
+    const { DebugPreviewGroup } = require("./debug-preview");
+
+    client.previews.previewProviders.push(new DebugPreviewGroup(client.previews));
+}
 
 client.on("messageCreate", async message => {
     if (message.author.bot) return;
