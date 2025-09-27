@@ -1,5 +1,6 @@
 const { EmbedBuilder, User } = require("discord.js");
 
+// TODO: there should be a way to trigger this specific preview in production for the owner only.
 class DebugPreview {
     name = "debug";
     reportErrors = true;
@@ -44,6 +45,9 @@ class DebugPreview {
             const guilds = client.application.approximateGuildCount;
             const users = client.application.approximateUserInstallCount;
             const owner = client.application.owner;
+
+            const packageJson = require("../package.json");
+            embed.setFooter({ text: `Bot Version: ${packageJson.version}` });
 
             embed.addFields(
                 { name: "Available Preview Generators", value: generatorList, inline: false },
