@@ -76,6 +76,22 @@ class ClientPreviews {
                         // we take the first result for every match.
                         continue matches;
                     } catch (error) {
+                        if (group.reportErrors || generator.reportErrors) {
+                            const owner = await this.client.users.fetch(process.env.BOT_OWNER_ID).catch(console.error);
+                            if (owner) {
+                                const errorChunks = splitIntoChunks(`${error.stack}`, 1900);
+                                for (const [i, chunk] of errorChunks.entries()) {
+                                    const embed = new EmbedBuilder()
+                                        .setColor("Red")
+                                        .setTitle(`Error in preview generator (${group.name}/${generator.name})`)
+                                        .setDescription(`\`\`\`${chunk}\`\`\``)
+                                        .setTimestamp()
+                                        .setFooter({ text: `Part ${i + 1} of ${errorChunks.length}` });
+
+                                        await owner.send({ embeds: [embed] }).catch(console.error);
+                                }
+                            }
+                        }
                         console.error(error);
                         continue;
                     }
@@ -85,12 +101,28 @@ class ClientPreviews {
     }
 }
 
-client.previews = new ClientPreviews(client, [
+function splitIntoChunks(string, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i < string.length; i += chunkSize) {
+        chunks.push(string.slice(i, i + chunkSize));
+    }
+    return chunks;
+}
+
+const previewProviders = [
     AmiAmiPreview,
     YouTubeCommunityPostPreview,
     YouTubeCommentPreview,
     BlueskyPreview,
-]);
+]
+
+if (process.env.NODE_ENV !== "production") {
+    const { DebugPreviewGroup} = require("./debug-preview");
+
+    previewProviders.push(DebugPreviewGroup);
+}
+
+client.previews = new ClientPreviews(client, previewProviders);
 
 client.on("messageCreate", async message => {
     if (message.author.bot) return;

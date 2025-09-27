@@ -7,6 +7,7 @@ const postIdRegex =
     /(?<=youtube.com\/post\/)Ug[A-z0-9_\-]+|(?<=youtube.com\/channel\/.+\/community\?lb=)Ug[A-z0-9_\-]+/g;
 
 class CommunityPostPreviewGenerator {
+    name = "youtube-community-posts";
     #client = new ScrapingClient();
 
     #cache = new Cache();

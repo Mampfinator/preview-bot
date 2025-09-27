@@ -24,6 +24,7 @@ const amiamiFallbackClient = new AmiAmiFallbackClient();
  * Generates a preview of an item in AmiAmi.
  */
 class AmiAmiApiPreview {
+    name = "amiami-api";
     #client;
 
     #cache = new Cache();
@@ -116,6 +117,7 @@ class AmiAmiApiPreview {
 }
 
 class AmiAmiFallbackPreview {
+    name = "amiami-fallback";
     #client = amiamiFallbackClient;
 
     /**
@@ -167,6 +169,8 @@ const apiPreview = new AmiAmiApiPreview({
  */
 const AmiAmiPreview = {
     name: "amiami",
+    // AmiAmi is very prone to breaking, so we want to know when it does.
+    reportErrors: true,
 
     /**
      * @param {string} content
