@@ -10,7 +10,7 @@ class DebugPreview {
     }
 
     async generate(line) {
-        const [,command] = line.split(":");
+        const [,command,options] = line.split(":");
         if (command === "error") {
             throw new Error("This is a test error for debugging purposes!");
         }
@@ -55,6 +55,39 @@ class DebugPreview {
                 { name: "Debug Guild", value: debugGuild, inline: true },
                 { name: "Installed", value: `In ${guilds ?? 0} guilds, by ${users ?? 0} users.`, inline: false }
             );
+
+            return {
+                message: {
+                    embeds: [embed],
+                }
+            }
+        }
+
+        if (command === "health") {
+            const results = new Map();
+
+            const filter = options?.trim().split(",").map(s => s.trim()).filter(s => s.length > 0);
+            for (const group of this.previews.previewProviders) {
+                for (const generator of group.generators) {
+                    if (filter?.length > 0 && !filter.includes(generator.name)) continue;
+                    if (typeof generator.healthCheck !== "function") continue;
+
+                    const healthy = await generator.healthCheck().catch(err => {
+                        console.error(`Health check for ${generator.name} failed:`, err);
+                        return false;
+                    });
+
+                    results.set(generator.name, healthy);
+                }
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle("Health Check Results")
+                .setColor("Green")
+                .setDescription(Array.from(results.entries()).map(([name, healthy]) => {
+                    if (healthy) return `✅ **${name}**`;
+                    return `❌ **${name}**`;
+                }).join("\n"));
 
             return {
                 message: {

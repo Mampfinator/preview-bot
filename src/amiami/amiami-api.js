@@ -202,6 +202,16 @@ class AmiAmiApiClient {
             throw error;
         }
     }
+
+    async healthy() {
+        try {
+            const response = await this.#instance.get("");
+        } catch (error) {
+            if (!(error instanceof axios.AxiosError)) throw error;
+            const { response } = error;
+            return response.status === 404 && response.data && response.data.RSuccess === false;
+        }
+    }
 }
 
 /**

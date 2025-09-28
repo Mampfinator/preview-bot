@@ -25,6 +25,9 @@ const amiamiFallbackClient = new AmiAmiFallbackClient();
  */
 class AmiAmiApiPreview {
     name = "amiami-api";
+    /**
+     * @type {AmiAmiApiClient}
+     */
     #client;
 
     #cache = new Cache();
@@ -114,6 +117,10 @@ class AmiAmiApiPreview {
             images: item.images.length,
         };
     }
+
+    async healthCheck() {
+        return this.#client.healthy();
+    }
 }
 
 class AmiAmiFallbackPreview {
@@ -154,6 +161,11 @@ class AmiAmiFallbackPreview {
             },
             images: 1,
         }
+    }
+
+    async healthCheck() {
+        return this.#client.healthy();
+        // TODO: how do we check health here? Do we just test if we can reach AmiAmi's CDN?
     }
 }
 
