@@ -5,6 +5,7 @@ const { ScrapingClient, YouTubeClient } = require("@sireatsalot/youtube.js");
 const REGEX = /https:\/\/(www\.)?youtube\.com\/(post|shorts)\/[^ ]+?lc=[A-Za-z0-9-_]+|https:\/\/(www\.)?youtube\.com\/watch\?v=[A-Za-z0-9-_]+&lc=[A-Za-z0-9-_]+/g;
 
 class YouTubeVideoCommentsPreviewGenerator {
+    name = "youtube-video-comments";
     /**
      * @type {ScrapingClient} client
      */
@@ -62,6 +63,7 @@ function apiCommentToEmbed(comment) {
 }
 
 class YouTubeShortsCommentsPreviewGenerator {
+    name = "youtube-shorts-comments";
     /**
      * @type {ScrapingClient} client
      */
@@ -102,6 +104,7 @@ class YouTubeShortsCommentsPreviewGenerator {
 }
 
 class YouTubePostCommentsPreviewGenerator {
+    name = "youtube-post-comments";
     /**
      * @type {ScrapingClient} client
      */
@@ -156,6 +159,7 @@ function commentToEmbed(comment) {
 }
 
 class YouTubeCommentPreview {
+    name = "youtube-comments";
     client;
     
     constructor(

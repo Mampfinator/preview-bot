@@ -51,6 +51,28 @@ class AmiAmiFallbackClient {
             res();
         }));
     }
+
+    /**
+     * Check if the AmiAmi image server is reachable (and we're not blocked).
+     */
+    async healthy() {
+        try {
+            const { quarter, code } = await new Promise((res, rej) => this.#db.get("SELECT quarter, code FROM figures ORDER BY RANDOM() LIMIT 1", (err, row) => {
+                if (err) return rej(err);
+                res(row)
+            }));
+
+            const url = `https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}.jpg`;
+            const response = await axios.head(url);
+            
+            // any good code, or 404 we count as healthy - that means we're not blocked.
+            return true;
+        } catch (error) {
+            if (!(error instanceof AxiosError)) return false;
+
+            return error.response.status == 404;
+        }
+    }
 }
 
 

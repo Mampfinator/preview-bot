@@ -1,4 +1,4 @@
-const { ScrapingClient, AttachmentType } = require("@sireatsalot/youtube.js");
+const { ScrapingClient, AttachmentType, DataExtractors } = require("@sireatsalot/youtube.js");
 const { EmbedBuilder } = require("discord.js");
 const { unwrap } = require("../util");
 const { Cache } = require("../cache");
@@ -7,6 +7,7 @@ const postIdRegex =
     /(?<=youtube.com\/post\/)Ug[A-z0-9_\-]+|(?<=youtube.com\/channel\/.+\/community\?lb=)Ug[A-z0-9_\-]+/g;
 
 class CommunityPostPreviewGenerator {
+    name = "youtube-community-posts";
     #client = new ScrapingClient();
 
     #cache = new Cache();
@@ -51,6 +52,16 @@ class CommunityPostPreviewGenerator {
 
     async init() {
         await this.#client.init();
+    }
+
+    async healthCheck() {
+        // ideally there would be a `HomeContext` in youtube.js for us to use here, but this will do for now.
+        // if we can reach YouTube and we get served valid `ytInitialData`, we should be fine.
+        const result = await this.#client.orchestrator.fetch({ method: "GET", url: "https://www.youtube.com/" });
+        if (!result.isOk()) return false;
+
+        const data = DataExtractors.ytInitialData(result.value);
+        return data.isOk();
     }
 }
 

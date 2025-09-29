@@ -24,6 +24,10 @@ const amiamiFallbackClient = new AmiAmiFallbackClient();
  * Generates a preview of an item in AmiAmi.
  */
 class AmiAmiApiPreview {
+    name = "amiami-api";
+    /**
+     * @type {AmiAmiApiClient}
+     */
     #client;
 
     #cache = new Cache();
@@ -113,9 +117,14 @@ class AmiAmiApiPreview {
             images: item.images.length,
         };
     }
+
+    async healthCheck() {
+        return this.#client.healthy();
+    }
 }
 
 class AmiAmiFallbackPreview {
+    name = "amiami-fallback";
     #client = amiamiFallbackClient;
 
     /**
@@ -153,6 +162,11 @@ class AmiAmiFallbackPreview {
             images: 1,
         }
     }
+
+    async healthCheck() {
+        return this.#client.healthy();
+        // TODO: how do we check health here? Do we just test if we can reach AmiAmi's CDN?
+    }
 }
 
 const apiPreview = new AmiAmiApiPreview({
@@ -167,6 +181,8 @@ const apiPreview = new AmiAmiApiPreview({
  */
 const AmiAmiPreview = {
     name: "amiami",
+    // AmiAmi is very prone to breaking, so we want to know when it does.
+    reportErrors: true,
 
     /**
      * @param {string} content

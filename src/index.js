@@ -1,12 +1,21 @@
 require("dotenv").config();
-const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events } = require("discord.js");
+const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, Partials } = require("discord.js");
 const { AmiAmiPreview } = require("./amiami");
 const { YouTubeCommunityPostPreview, YouTubeCommentPreview } = require("./youtube");
 const { BlueskyPreview } = require("./bluesky");
 const { registerContextInteractions } = require("./context-interaction");
+const { DebugPreviewGroup } = require("./debug-preview");
 
 const client = new Client({
-    intents: [IntentsFlags.Guilds, IntentsFlags.GuildMessages, IntentsFlags.MessageContent],
+    intents: [
+        IntentsFlags.Guilds, 
+        IntentsFlags.GuildMessages, 
+        IntentsFlags.MessageContent, 
+        IntentsFlags.DirectMessages,
+    ],
+    partials: [
+        Partials.Channel,
+    ]
 });
 
 class ClientPreviews {
@@ -76,6 +85,22 @@ class ClientPreviews {
                         // we take the first result for every match.
                         continue matches;
                     } catch (error) {
+                        if (group.reportErrors || generator.reportErrors) {
+                            const owner = await this.client.users.fetch(process.env.BOT_OWNER_ID).catch(console.error);
+                            if (owner) {
+                                const errorChunks = splitIntoChunks(`${error.stack}`, 1900);
+                                for (const [i, chunk] of errorChunks.entries()) {
+                                    const embed = new EmbedBuilder()
+                                        .setColor("Red")
+                                        .setTitle(`Error in preview generator (${group.name}/${generator.name})`)
+                                        .setDescription(`\`\`\`${chunk}\`\`\``)
+                                        .setTimestamp()
+                                        .setFooter({ text: `Part ${i + 1} of ${errorChunks.length}` });
+
+                                        await owner.send({ embeds: [embed] }).catch(console.error);
+                                }
+                            }
+                        }
                         console.error(error);
                         continue;
                     }
@@ -85,12 +110,41 @@ class ClientPreviews {
     }
 }
 
-client.previews = new ClientPreviews(client, [
+function splitIntoChunks(string, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i < string.length; i += chunkSize) {
+        chunks.push(string.slice(i, i + chunkSize));
+    }
+    return chunks;
+}
+
+const previewProviders = [
     AmiAmiPreview,
     YouTubeCommunityPostPreview,
     YouTubeCommentPreview,
     BlueskyPreview,
-]);
+]
+
+client.previews = new ClientPreviews(client, previewProviders);
+
+
+if (process.env.NODE_ENV !== "production") {
+    client.previews.previewProviders.push(new DebugPreviewGroup(client.previews));
+} else {
+    const debugPreview = new DebugPreviewGroup(client.previews);
+
+    client.on("messageCreate", async message => {
+        if (message.inGuild()) return;
+        if (message.author.id !== process.env.BOT_OWNER_ID) return;
+
+        const matches = debugPreview.match(message.content);
+        for (const match of matches) {
+            // DebugPreviewGroup only has one generator
+            const { message: reply } = await debugPreview.generators[0].generate(match);
+            await message.reply(reply);
+        }
+    })
+}
 
 client.on("messageCreate", async message => {
     if (message.author.bot) return;

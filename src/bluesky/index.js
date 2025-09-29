@@ -21,6 +21,7 @@ function idsFromFeedUrl(url) {
  * Previews Bluesky feeds.
  */
 class BlueskyFeedPreview {
+    name = "bluesky-feeds";
     /**
      * @type {Agent}
      */
