@@ -1,9 +1,9 @@
-const { default: axios } = require("axios");
+import axios from "axios";
 
 /**
  * Simple client for https://currencyapi.com/.
  */
-class CurrencyApi {
+export class CurrencyApi {
     #instance;
     #key;
 
@@ -92,8 +92,4 @@ class CurrencyApi {
         this.#start();
 
     }
-}
-
-module.exports = {
-    CurrencyApi,
 }

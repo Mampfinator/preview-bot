@@ -1,14 +1,13 @@
-const { default: axios, AxiosError } = require("axios");
-const sqlite = require("sqlite3");
-
-const { sleep } = require("../util");
+import { default as axios, AxiosError } from "axios";
+import sqlite from "sqlite3";
+import { sleep } from "../util.js";
 
 /**
  * The fallback client for AmiAmi.
  * 
  * Its main purpose is to at least generate image URLs in cases where the main API fails.
  */
-class AmiAmiFallbackClient {
+export class AmiAmiFallbackClient {
     #db;
 
     constructor(options) {
@@ -319,8 +318,4 @@ class Quarter {
     toString() {
         return `${this.year}${this.quarter}`
     }
-}
-
-module.exports = {
-    AmiAmiFallbackClient,
 }

@@ -1,6 +1,6 @@
-const { Agent, CredentialSession, isDid, asDid } = require("@atproto/api");
-const { EmbedBuilder } = require("@discordjs/builders");
-const { Colors } = require("discord.js");
+import { Agent, CredentialSession, isDid, asDid } from "@atproto/api";
+import { EmbedBuilder } from "@discordjs/builders";
+import { Colors } from "discord.js";
 
 const BLUESKY_FEED_URL_REGEX = /https\:\/\/bsky\.app\/profile\/[A-Za-z0-9\-\:\_\.]+\/feed\/[A-Za-z0-9\-]+/g;
 
@@ -89,7 +89,7 @@ class BlueskyFeedPreview {
     }
 }
 
-const BlueskyPreview = {
+export const BlueskyPreview = {
     name: "bluesky",
     /**
      * @param {string} content
@@ -101,8 +101,4 @@ const BlueskyPreview = {
     generators: [
         new BlueskyFeedPreview(),
     ]
-}
-
-module.exports = {
-    BlueskyPreview,
 }

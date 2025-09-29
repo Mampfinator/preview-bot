@@ -1,10 +1,10 @@
-const { Client, ContextMenuCommandBuilder, InteractionType, InteractionContextType, ApplicationCommandType, ApplicationIntegrationType, MessageFlags, EmbedBuilder } = require("discord.js");
+import { Client, ContextMenuCommandBuilder, InteractionType, InteractionContextType, ApplicationCommandType, ApplicationIntegrationType, MessageFlags, EmbedBuilder } from "discord.js";
 
 /**
  * 
  * @param {Client} client 
  */
-function registerContextInteractions(client) {
+export function registerContextInteractions(client) {
     client.on("interactionCreate", async interaction => {
         if (!interaction.isMessageContextMenuCommand()) return;
         if (!interaction.commandName.startsWith("Preview")) return;
@@ -51,5 +51,3 @@ const interactionPrivate = new ContextMenuCommandBuilder()
     .setIntegrationTypes([ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall])
     .setType(ApplicationCommandType.Message)
     .setContexts([InteractionContextType.BotDM, InteractionContextType.PrivateChannel]);
-
-module.exports = { registerContextInteractions };

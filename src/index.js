@@ -1,10 +1,13 @@
-require("dotenv").config();
-const { Client, IntentsBitField: {Flags: IntentsFlags}, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, Partials } = require("discord.js");
-const { AmiAmiPreview } = require("./amiami");
-const { YouTubeCommunityPostPreview, YouTubeCommentPreview } = require("./youtube");
-const { BlueskyPreview } = require("./bluesky");
-const { registerContextInteractions } = require("./context-interaction");
-const { DebugPreviewGroup } = require("./debug-preview");
+import "dotenv/config";
+
+import { Client, IntentsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, Partials } from "discord.js";
+import { AmiAmiPreview } from "./amiami/index.js";
+import { youTubeCommunityPostPreview, youTubeCommentPreview } from "./youtube/index.js";
+import { BlueskyPreview } from "./bluesky/index.js";
+import { registerContextInteractions } from "./context-interaction.js";
+import { DebugPreviewGroup } from "./debug-preview.js";
+
+const { Flags: IntentsFlags } = IntentsBitField;
 
 const client = new Client({
     intents: [
@@ -120,8 +123,8 @@ function splitIntoChunks(string, chunkSize) {
 
 const previewProviders = [
     AmiAmiPreview,
-    YouTubeCommunityPostPreview,
-    YouTubeCommentPreview,
+    youTubeCommunityPostPreview,
+    youTubeCommentPreview,
     BlueskyPreview,
 ]
 

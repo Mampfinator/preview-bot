@@ -1,5 +1,5 @@
-const axios = require("axios");
-const https = require("https");
+import axios from "axios";
+import https from "https";
 
 /**
  * Attempt to recover whatever we can from a broken JSON string.
@@ -110,7 +110,7 @@ function fixJson(data) {
     return fixed;
 }
 
-class AmiAmiApiClient {
+export class AmiAmiApiClient {
     /**
      * Used to make requests to the AmiAmi API.
      * 
@@ -217,7 +217,7 @@ class AmiAmiApiClient {
 /**
  * Represents an item from the AmiAmi API.
  */
-class Item {
+export class Item {
     #item;
     #embedded;
 
@@ -358,6 +358,3 @@ class Item {
         return this.#embedded?.review_images.map(image => `https://img.amiami.com/${image.image_url}`) ?? [];
     }
 }
-
-
-module.exports = { AmiAmiApiClient, Item };

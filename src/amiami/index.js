@@ -1,8 +1,8 @@
-const { EmbedBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
-const { AmiAmiApiClient } = require("./amiami-api");
-const { AmiAmiFallbackClient } = require("./amiami-fallback");
-const { CurrencyApi } = require("../currencyapi");
-const { Cache } = require("../cache");
+import { EmbedBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from "discord.js";
+import { AmiAmiApiClient } from "./amiami-api.js";
+import { AmiAmiFallbackClient } from "./amiami-fallback.js";
+import { CurrencyApi } from "../currencyapi.js";
+import { Cache } from "../cache.js";
 
 /**
  * Matches item links for AmiAmi; the returned matches are of the form "scode=code" or "gcode=code".
@@ -179,7 +179,7 @@ const apiPreview = new AmiAmiApiPreview({
  * @see {@link AmiAmiApiPreview}
  * @see {@link AmiAmiFallbackPreview}
  */
-const AmiAmiPreview = {
+export const AmiAmiPreview = {
     name: "amiami",
     // AmiAmi is very prone to breaking, so we want to know when it does.
     reportErrors: true,
@@ -224,8 +224,3 @@ const AmiAmiPreview = {
         }
     }
 }
-
-
-module.exports = {
-    AmiAmiPreview,
-};

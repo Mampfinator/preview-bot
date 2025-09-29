@@ -1,5 +1,5 @@
-const { EmbedBuilder } = require("@discordjs/builders");
-const { ScrapingClient, YouTubeClient } = require("@sireatsalot/youtube.js");
+import { EmbedBuilder } from "@discordjs/builders";
+import { ScrapingClient, YouTubeClient } from "@sireatsalot/youtube.js";
 
 // yes this is excessive.
 const REGEX = /https:\/\/(www\.)?youtube\.com\/(post|shorts)\/[^ ]+?lc=[A-Za-z0-9-_]+|https:\/\/(www\.)?youtube\.com\/watch\?v=[A-Za-z0-9-_]+&lc=[A-Za-z0-9-_]+/g;
@@ -158,7 +158,7 @@ function commentToEmbed(comment) {
         })
 }
 
-class YouTubeCommentPreview {
+export class YouTubeCommentPreview {
     name = "youtube-comments";
     client;
     
@@ -181,8 +181,4 @@ class YouTubeCommentPreview {
     async init() {
         await this.client.init();
     }
-}
-
-module.exports = {
-    YouTubeCommentPreview
 }

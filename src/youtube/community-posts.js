@@ -1,7 +1,7 @@
-const { ScrapingClient, AttachmentType, DataExtractors } = require("@sireatsalot/youtube.js");
-const { EmbedBuilder } = require("discord.js");
-const { unwrap } = require("../util");
-const { Cache } = require("../cache");
+import { ScrapingClient, AttachmentType, DataExtractors } from "@sireatsalot/youtube.js";
+import { EmbedBuilder } from "discord.js";
+import { unwrap } from "../util.js";
+import { Cache } from "../cache.js";
 
 const postIdRegex =
     /(?<=youtube.com\/post\/)Ug[A-z0-9_\-]+|(?<=youtube.com\/channel\/.+\/community\?lb=)Ug[A-z0-9_\-]+/g;
@@ -70,7 +70,7 @@ class CommunityPostPreviewGenerator {
  * @param { import("@sireatsalot/youtube.js").CommunityPost } post
  * @param { import("@sireatsalot/youtube.js").ChannelData } channel
  */
-function postToEmbed(post, channel) {
+export function postToEmbed(post, channel) {
     const { content, attachmentType, id: postId } = post;
 
     const { avatar, name, id: channelId } = channel;
@@ -131,7 +131,7 @@ function postToEmbed(post, channel) {
     return embed;
 }
 
-class YouTubeCommunityPostPreview {
+export class YouTubeCommunityPostPreview {
     name = "youtube-community-posts";
 
     constructor(client) {
@@ -149,9 +149,4 @@ class YouTubeCommunityPostPreview {
     getImage(id, imageNo) {
         return this.generators[0].getImage(id, imageNo);
     }
-}
-
-module.exports = {
-    YouTubeCommunityPostPreview,
-    postToEmbed,
 }

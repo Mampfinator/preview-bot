@@ -1,4 +1,4 @@
-const { EmbedBuilder, User } = require("discord.js");
+import { EmbedBuilder, User } from "discord.js";
 
 // TODO: there should be a way to trigger this specific preview in production for the owner only.
 class DebugPreview {
@@ -98,7 +98,7 @@ class DebugPreview {
     }
 }
 
-class DebugPreviewGroup {
+export class DebugPreviewGroup {
     name = "debug";
 
     constructor(previews) {
@@ -111,8 +111,4 @@ class DebugPreviewGroup {
         return content.split("\n")
             .filter(line => line.startsWith("debug:"))
     }
-}
-
-module.exports = {
-    DebugPreviewGroup,
 }

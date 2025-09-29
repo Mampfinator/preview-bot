@@ -1,10 +1,8 @@
-const { ScrapingClient } = require("@sireatsalot/youtube.js");
-const { YouTubeCommentPreview } = require("./comments");
-const { YouTubeCommunityPostPreview } = require("./community-posts");
+import { ScrapingClient } from "@sireatsalot/youtube.js";
+import { YouTubeCommentPreview } from "./comments.js";
+import { YouTubeCommunityPostPreview } from "./community-posts.js";
 
 const client = new ScrapingClient();
 
-module.exports = {
-    YouTubeCommunityPostPreview: new YouTubeCommunityPostPreview(client),
-    YouTubeCommentPreview: new YouTubeCommentPreview(client)
-}
+export const youTubeCommunityPostPreview = new YouTubeCommunityPostPreview(client);
+export const youTubeCommentPreview = new YouTubeCommentPreview(client);
