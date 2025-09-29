@@ -28,7 +28,7 @@ const client = new Client({
     partials: [Partials.Channel],
 });
 
-class ClientPreviews {
+class PreviewManager {
     /**
      * @type { Client }
      */
@@ -98,6 +98,7 @@ class ClientPreviews {
                         if (group.reportErrors || generator.reportErrors) {
                             const owner = await this.client.users.fetch(process.env.BOT_OWNER_ID).catch(console.error);
                             if (owner) {
+                                //Discord messages can only be 2000 characters in total, so we need to split longer stack traces into sendable chunks.
                                 const errorChunks = splitIntoChunks(`${error.stack}`, 1900);
                                 for (const [i, chunk] of errorChunks.entries()) {
                                     const embed = new EmbedBuilder()
@@ -130,7 +131,7 @@ function splitIntoChunks(string, chunkSize) {
 
 const previewProviders = [AmiAmiPreview, youTubeCommunityPostPreview, youTubeCommentPreview, BlueskyPreview];
 
-client.previews = new ClientPreviews(client, previewProviders);
+client.previews = new PreviewManager(client, previewProviders);
 
 if (process.env.NODE_ENV !== "production") {
     client.previews.previewProviders.push(new DebugPreviewGroup(client.previews));

@@ -4,11 +4,8 @@ import https from "https";
 /**
  * Attempt to recover whatever we can from a broken JSON string.
  *
- * The algorithm is dead simple, and only cares about closing unmatched brackets and quotes, as well
- * as removing trailing commas and deleting a dangling property name.
- *
  * @param {string} data
- * @returns {string}
+ * @returns {string} a (hopefully) `JSON.parse`-able string
  */
 function fixJson(data) {
     // remove trailing commas

@@ -1,7 +1,6 @@
 import { EmbedBuilder, User } from "discord.js";
 import process from "node:process";
 
-// TODO: there should be a way to trigger this specific preview in production for the owner only.
 class DebugPreview {
     name = "debug";
     reportErrors = true;

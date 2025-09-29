@@ -8,7 +8,8 @@ import {
 } from "discord.js";
 
 /**
- *
+ * Registers `Preview` and `Preview (Private)` context menu interactions and their listener.
+ * 
  * @param {import("discord.js").Client} client
  */
 export function registerContextInteractions(client) {

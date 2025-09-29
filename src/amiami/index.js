@@ -163,7 +163,6 @@ class AmiAmiFallbackPreview {
 
     async healthCheck() {
         return this.#client.healthy();
-        // TODO: how do we check health here? Do we just test if we can reach AmiAmi's CDN?
     }
 }
 
