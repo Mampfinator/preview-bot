@@ -1,14 +1,15 @@
-const { default: axios, AxiosError } = require("axios");
-const sqlite = require("sqlite3");
-
-const { sleep } = require("../util");
+import { default as axios, AxiosError } from "axios";
+import { Buffer } from "buffer";
+import process from "node:process";
+import sqlite from "sqlite3";
+import { sleep } from "../util.js";
 
 /**
  * The fallback client for AmiAmi.
- * 
+ *
  * Its main purpose is to at least generate image URLs in cases where the main API fails.
  */
-class AmiAmiFallbackClient {
+export class AmiAmiFallbackClient {
     #db;
 
     constructor(options) {
@@ -19,10 +20,13 @@ class AmiAmiFallbackClient {
 
     async init() {
         await new Promise((resolve, reject) => {
-            this.#db.run("CREATE TABLE IF NOT EXISTS figures (code INTEGER UNIQUE PRIMARY KEY, quarter INTEGER, preowned INTEGER)", (err) => {
-                if (err) reject(err)
-                resolve();
-            });
+            this.#db.run(
+                "CREATE TABLE IF NOT EXISTS figures (code INTEGER UNIQUE PRIMARY KEY, quarter INTEGER, preowned INTEGER)",
+                (err) => {
+                    if (err) reject(err);
+                    resolve();
+                },
+            );
         });
     }
 
@@ -33,7 +37,7 @@ class AmiAmiFallbackClient {
         try {
             const [{ quarter, code, prewoned }, buffer] = await guesstimateQuarter(this.#db, rawCode);
             if (!buffer) return null;
-            
+
             await this.insert(code, quarter, prewoned);
             return buffer;
         } catch (error) {
@@ -46,10 +50,12 @@ class AmiAmiFallbackClient {
      * Insert a new FIGURE-code - quarter pair into the database.
      */
     async insert(code, quarter, preowned) {
-        return new Promise((res, rej) => this.#db.run("INSERT OR IGNORE INTO figures VALUES (?, ?, ?)", [code, quarter, preowned], (err) => {
-            if (err) rej(err);
-            res();
-        }));
+        return new Promise((res, rej) =>
+            this.#db.run("INSERT OR IGNORE INTO figures VALUES (?, ?, ?)", [code, quarter, preowned], (err) => {
+                if (err) rej(err);
+                res();
+            }),
+        );
     }
 
     /**
@@ -57,14 +63,16 @@ class AmiAmiFallbackClient {
      */
     async healthy() {
         try {
-            const { quarter, code } = await new Promise((res, rej) => this.#db.get("SELECT quarter, code FROM figures ORDER BY RANDOM() LIMIT 1", (err, row) => {
-                if (err) return rej(err);
-                res(row)
-            }));
+            const { quarter, code } = await new Promise((res, rej) =>
+                this.#db.get("SELECT quarter, code FROM figures ORDER BY RANDOM() LIMIT 1", (err, row) => {
+                    if (err) return rej(err);
+                    res(row);
+                }),
+            );
 
             const url = `https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}.jpg`;
-            const response = await axios.head(url);
-            
+            await axios.head(url);
+
             // any good code, or 404 we count as healthy - that means we're not blocked.
             return true;
         } catch (error) {
@@ -75,15 +83,13 @@ class AmiAmiFallbackClient {
     }
 }
 
-
-
 function parseCode(rawCode) {
     if (typeof rawCode != "string") throw new Error("rawCode must be a string");
 
     return {
         code: Number(rawCode.replace("-R", "")),
-        preowned: rawCode.indexOf("R") >= 0
-    }
+        preowned: rawCode.indexOf("R") >= 0,
+    };
 }
 
 function getImageBuffer(code, quarter) {
@@ -91,32 +97,29 @@ function getImageBuffer(code, quarter) {
     if (code.length < 6) code = "0".repeat(6 - code.length) + code;
 
     const url = `https://img.amiami.com/images/product/main/${quarter}/FIGURE-${code}.jpg`;
-    return axios.get(url, { responseType: "arraybuffer" }).then(res => Buffer.from(res.data, "binary"));
+    return axios.get(url, { responseType: "arraybuffer" }).then((res) => Buffer.from(res.data, "binary"));
 }
 
 /**
  * Tries to guess the quarter for the given code.
- * 
+ *
  * It does this by estimating the quarter from the previous and next figures we've already seen,
  * then guessing quarters around the initial estimate.
  */
 async function guesstimateQuarter(db, rawCode) {
     if (typeof rawCode != "string") throw new Error("code must be a string");
 
-    const {
-        code,
-        preowned
-    } = parseCode(rawCode);
+    const { code, preowned } = parseCode(rawCode);
 
     // find existing entry
-    const existingEntry = await new Promise((res, rej) => db.get(`SELECT quarter FROM figures WHERE code = (?)`, [code], (err, row) => {
-        if (err) rej(err);
-        res(row)
-    }));
+    const existingEntry = await new Promise((res, rej) =>
+        db.get(`SELECT quarter FROM figures WHERE code = (?)`, [code], (err, row) => {
+            if (err) rej(err);
+            res(row);
+        }),
+    );
 
     if (existingEntry) return [existingEntry.quarter, await getImageBuffer(code, existingEntry.quarter)];
-
-
 
     console.log(`Guessing quarter for ${code} (${preowned ? "preowned" : "not preowned"}).`);
 
@@ -138,28 +141,32 @@ async function guesstimateQuarter(db, rawCode) {
         LIMIT 1;
     `);
 
-    await new Promise((resolve, reject) => statement1.all([code], (err, rows) => {
-        if (err) reject(err)
-        resolve(rows[0]);
-    })).then(row => rows.push(row));
+    await new Promise((resolve, reject) =>
+        statement1.all([code], (err, rows) => {
+            if (err) reject(err);
+            resolve(rows[0]);
+        }),
+    ).then((row) => rows.push(row));
 
-    await new Promise((resolve, reject) => statement2.all([code], (err, rows) => {
-        if (err) reject(err)
-        resolve(rows[0]);
-    })).then(row => rows.push(row));
+    await new Promise((resolve, reject) =>
+        statement2.all([code], (err, rows) => {
+            if (err) reject(err);
+            resolve(rows[0]);
+        }),
+    ).then((row) => rows.push(row));
 
     console.log(rows);
 
-    rows = rows.filter(row => !!row && !isNaN(row.code));
+    rows = rows.filter((row) => !!row && !isNaN(row.code));
 
     if (!rows) return null;
     if (rows.length <= 0) return null;
 
-    const initialQuarter = rows.length == 1 ? Quarter.fromString(String(rows[0].quarter)) : estimateQuarter(rows[0], rows[1], code);
+    const initialQuarter =
+        rows.length == 1 ? Quarter.fromString(String(rows[0].quarter)) : estimateQuarter(rows[0], rows[1], code);
     let quarter = initialQuarter.clone();
 
     console.log("Initial guess: ", quarter);
-
 
     let guess = 0;
 
@@ -171,7 +178,7 @@ async function guesstimateQuarter(db, rawCode) {
             console.log(`Found image for ${code} in ${quarter.toString()}.`);
 
             if (imageBuffer) {
-                return [{code, preowned, quarter: quarter.toString()}, imageBuffer];
+                return [{ code, preowned, quarter: quarter.toString() }, imageBuffer];
             }
         } catch (error) {
             if (error instanceof AxiosError && error.response?.status == 404) {
@@ -179,7 +186,9 @@ async function guesstimateQuarter(db, rawCode) {
                 const offset = Math.floor(guess / 2) + 1;
 
                 quarter = initialQuarter.addQuarters(offset * sign);
-                console.log(`Failed to get image for ${code}. Retrying with ${quarter.toString()} (${initialQuarter.toString()} ${sign > 0 ? "+" : "-"} ${offset}).`);
+                console.log(
+                    `Failed to get image for ${code}. Retrying with ${quarter.toString()} (${initialQuarter.toString()} ${sign > 0 ? "+" : "-"} ${offset}).`,
+                );
 
                 guess += 1;
             } else {
@@ -202,8 +211,7 @@ function estimateQuarter(figure1, figure2, code) {
 
     if (diff == 0) return Quarter.fromNumber(figure1.quarter);
 
-    const codeScale = Math.abs(1 - (figure2.code - code)/diff);
-
+    const codeScale = Math.abs(1 - (figure2.code - code) / diff);
 
     const quarterA = Quarter.fromNumber(figure1.quarter);
     const quarterB = Quarter.fromNumber(figure2.quarter);
@@ -212,14 +220,16 @@ function estimateQuarter(figure1, figure2, code) {
 
     const result = quarterA.addQuarters(quartersToAdd);
 
-    console.log(`Estimated quarter between ${quarterA.toString()} (${figure1.code}) and ${quarterB.toString()} (${figure2.code}): ${result.toString()} (${quartersToAdd}; ${String(codeScale).substring(0, 4)}).`);
+    console.log(
+        `Estimated quarter between ${quarterA.toString()} (${figure1.code}) and ${quarterB.toString()} (${figure2.code}): ${result.toString()} (${quartersToAdd}; ${String(codeScale).substring(0, 4)}).`,
+    );
 
     return result;
 }
 
 /**
  * Represents a quarter in the AmiAmi catalog.
- * 
+ *
  * Converts between string and a number representations, and implements some useful (arithmetic) methods.
  */
 class Quarter {
@@ -233,7 +243,7 @@ class Quarter {
 
     /**
      * Parse a quarter string into a Quarter object.
-     * 
+     *
      * A quarter string is a string of the form `YYQ` where `YY` is the year and `Q` is the quarter.
      */
     static fromString(quarterStr) {
@@ -247,7 +257,7 @@ class Quarter {
 
     /**
      * Create a Quarter object from a number. This is an *alias* for `Quarter.fromString()`, only for convenience.
-     * 
+     *
      * If you need to convert from a number of quarters, use {@link Quarter.fromNumQuarters}.
      */
     static fromNumber(num) {
@@ -257,9 +267,9 @@ class Quarter {
 
     /**
      * Create a Quarter object from a number of quarters.
-     * 
+     *
      * A "number of quarters" is `YY * 4 + Q`, where `YY` is the year and `Q` is the quarter.
-     * 
+     *
      * If you need to convert from a quarter string, use {@link Quarter.fromString}.
      */
     static fromNumQuarters(numQuarters) {
@@ -304,23 +314,19 @@ class Quarter {
 
     /**
      * Get the number of quarters in this Quarter object.
-     * 
+     *
      * To convert back from a number of quarters, use {@link Quarter.fromNumQuarters}.
      */
     toNumQuarters() {
-        return this.year * 4 + this.quarter
+        return this.year * 4 + this.quarter;
     }
 
     /**
      * Get the quarter as a string of the form `YYQ` where `YY` is the year and `Q` is the quarter.
-     * 
+     *
      * To convert back from a quarter string, use {@link Quarter.fromString}.
      */
     toString() {
-        return `${this.year}${this.quarter}`
+        return `${this.year}${this.quarter}`;
     }
-}
-
-module.exports = {
-    AmiAmiFallbackClient,
 }

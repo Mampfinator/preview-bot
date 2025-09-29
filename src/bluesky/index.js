@@ -1,8 +1,9 @@
-const { Agent, CredentialSession, isDid, asDid } = require("@atproto/api");
-const { EmbedBuilder } = require("@discordjs/builders");
-const { Colors } = require("discord.js");
+import { Agent, CredentialSession, isDid, asDid } from "@atproto/api";
+import { EmbedBuilder } from "@discordjs/builders";
+import { Colors } from "discord.js";
+import process from "node:process";
 
-const BLUESKY_FEED_URL_REGEX = /https\:\/\/bsky\.app\/profile\/[A-Za-z0-9\-\:\_\.]+\/feed\/[A-Za-z0-9\-]+/g;
+const BLUESKY_FEED_URL_REGEX = /https:\/\/bsky\.app\/profile\/[A-Za-z0-9\-:_.]+\/feed\/[A-Za-z0-9-]+/g;
 
 /**
  * @param {string} url Bluesky feed URL matching `https://bsky.app/profile/<user>/feed/<feed>`.
@@ -28,22 +29,18 @@ class BlueskyFeedPreview {
     #agent;
 
     constructor() {
-        this.#agent = new Agent(
-            new CredentialSession(
-                "https://bsky.social",
-            ),
-        );
+        this.#agent = new Agent(new CredentialSession("https://bsky.social"));
     }
 
     /**
-     * @param {string} match 
+     * @param {string} match
      */
     async generate(match) {
         let [userId, feedId] = idsFromFeedUrl(match);
 
         if (!isDid(userId)) {
             const { data, success } = await this.#agent.com.atproto.identity.resolveHandle({
-                handle: userId
+                handle: userId,
             });
 
             if (!success) return console.error(`Failed to resolve DID for ${userId}`);
@@ -74,11 +71,11 @@ class BlueskyFeedPreview {
                         .setTimestamp()
                         .setFooter({
                             text: "Bluesky",
-                            iconURL: "https://bsky.app/static/favicon.png"
-                        })
-                ]
-            }
-        }
+                            iconURL: "https://bsky.app/static/favicon.png",
+                        }),
+                ],
+            },
+        };
     }
 
     async init() {
@@ -89,20 +86,16 @@ class BlueskyFeedPreview {
     }
 }
 
-const BlueskyPreview = {
+export const BlueskyPreview = {
     name: "bluesky",
     /**
      * @param {string} content
      * @returns {string[]} matches
      */
     match(content) {
-        return [...content.matchAll(BLUESKY_FEED_URL_REGEX)].map(match => typeof match == "string" ? match : match[0]);
+        return [...content.matchAll(BLUESKY_FEED_URL_REGEX)].map((match) =>
+            typeof match == "string" ? match : match[0],
+        );
     },
-    generators: [
-        new BlueskyFeedPreview(),
-    ]
-}
-
-module.exports = {
-    BlueskyPreview,
-}
+    generators: [new BlueskyFeedPreview()],
+};

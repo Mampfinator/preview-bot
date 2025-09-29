@@ -1,4 +1,4 @@
-class Cache extends Map {
+export class Cache extends Map {
     #interval;
 
     // an hour, because most services have pretty strict API limits.
@@ -46,5 +46,3 @@ class Cache extends Map {
         this.#interval = setInterval(() => this.#deleteExpired(), 1000);
     }
 }
-
-module.exports = { Cache };

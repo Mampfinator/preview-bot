@@ -1,9 +1,10 @@
-const { default: axios } = require("axios");
+import axios from "axios";
+import process from "node:process";
 
 /**
  * Simple client for https://currencyapi.com/.
  */
-class CurrencyApi {
+export class CurrencyApi {
     #instance;
     #key;
 
@@ -25,9 +26,7 @@ class CurrencyApi {
      */
     ready;
 
-    constructor(
-        key
-    ) {
+    constructor(key) {
         key = key ?? process.env.CURRENCYAPI_KEY;
 
         if (!key) throw new TypeError(`No Currency API key defined.`);
@@ -35,7 +34,7 @@ class CurrencyApi {
         this.#key = key;
 
         this.#instance = axios.create({
-            baseURL: `https://api.currencyapi.com/v3/`
+            baseURL: `https://api.currencyapi.com/v3/`,
         });
 
         this.#start();
@@ -43,17 +42,25 @@ class CurrencyApi {
 
     #start() {
         this.ready = (async () => {
-            const { data: {JPY: {value}} } = await this.latest("USD", "JPY");
+            const {
+                data: {
+                    JPY: { value },
+                },
+            } = await this.latest("USD", "JPY");
 
             this.conversionRate = Number(value);
 
             this.interval = setTimeout(
                 async () => {
-                    const { data: {JPY: {value}} } = await this.latest("USD", "JPY");
+                    const {
+                        data: {
+                            JPY: { value },
+                        },
+                    } = await this.latest("USD", "JPY");
                     this.conversionRate = Number(value);
-                }, 
+                },
                 // 12 hours
-                12 * 60 * 60 * 1000
+                12 * 60 * 60 * 1000,
             );
 
             return this;
@@ -62,17 +69,19 @@ class CurrencyApi {
 
     /**
      * Fetch the latest conversion rate.
-     * @param {string} from 
+     * @param {string} from
      * @param {string[]} to
      */
     async latest(from, ...to) {
-        return this.#instance.get("/latest", {
-            params: {
-                apikey: this.#key,
-                base_currency: from.toUpperCase(),
-                currencies: to.map(cur => cur.toUpperCase()).join(",")
-            }
-        }).then(({data}) => data);
+        return this.#instance
+            .get("/latest", {
+                params: {
+                    apikey: this.#key,
+                    base_currency: from.toUpperCase(),
+                    currencies: to.map((cur) => cur.toUpperCase()).join(","),
+                },
+            })
+            .then(({ data }) => data);
     }
 
     /**
@@ -88,12 +97,7 @@ class CurrencyApi {
      * Also immediately updates the conversion rate.
      */
     async restart() {
-        if (!!this.interval) throw new Error("already running");
+        if (this.interval) throw new Error("already running");
         this.#start();
-
     }
-}
-
-module.exports = {
-    CurrencyApi,
 }

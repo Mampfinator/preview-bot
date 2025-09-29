@@ -1,37 +1,43 @@
-const { Client, ContextMenuCommandBuilder, InteractionType, InteractionContextType, ApplicationCommandType, ApplicationIntegrationType, MessageFlags, EmbedBuilder } = require("discord.js");
+import {
+    ContextMenuCommandBuilder,
+    InteractionContextType,
+    ApplicationCommandType,
+    ApplicationIntegrationType,
+    MessageFlags,
+    EmbedBuilder,
+} from "discord.js";
 
 /**
+ * Registers `Preview` and `Preview (Private)` context menu interactions and their listener.
  * 
- * @param {Client} client 
+ * @param {import("discord.js").Client} client
  */
-function registerContextInteractions(client) {
-    client.on("interactionCreate", async interaction => {
+export function registerContextInteractions(client) {
+    client.on("interactionCreate", async (interaction) => {
         if (!interaction.isMessageContextMenuCommand()) return;
         if (!interaction.commandName.startsWith("Preview")) return;
 
         const flags = interaction.commandName.includes("(Private)") ? MessageFlags.Ephemeral : 0;
 
-        await interaction.deferReply({flags})
+        await interaction.deferReply({ flags });
 
         let sentAny = false;
 
         for await (const message of client.previews.generateFromContent(interaction.targetMessage.content)) {
             if (!interaction.deferred && !interaction.replied) {
-                await interaction.editReply({...message}).catch(console.error);
+                await interaction.editReply({ ...message }).catch(console.error);
                 sentAny = true;
             } else {
-                await interaction.followUp({...message, flags}).catch(console.error);
+                await interaction.followUp({ ...message, flags }).catch(console.error);
             }
         }
 
         if (!sentAny) {
-            await interaction.editReply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setDescription(":x: Nothing to preview!")
-                        .setColor("Red")
-                ]
-            }).catch(console.error);
+            await interaction
+                .editReply({
+                    embeds: [new EmbedBuilder().setDescription(":x: Nothing to preview!").setColor("Red")],
+                })
+                .catch(console.error);
         }
     });
 
@@ -51,5 +57,3 @@ const interactionPrivate = new ContextMenuCommandBuilder()
     .setIntegrationTypes([ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall])
     .setType(ApplicationCommandType.Message)
     .setContexts([InteractionContextType.BotDM, InteractionContextType.PrivateChannel]);
-
-module.exports = { registerContextInteractions };

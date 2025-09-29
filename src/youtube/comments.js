@@ -1,8 +1,10 @@
-const { EmbedBuilder } = require("@discordjs/builders");
-const { ScrapingClient, YouTubeClient } = require("@sireatsalot/youtube.js");
+import { EmbedBuilder } from "@discordjs/builders";
+import { YouTubeClient } from "@sireatsalot/youtube.js";
+import process from "node:process";
 
 // yes this is excessive.
-const REGEX = /https:\/\/(www\.)?youtube\.com\/(post|shorts)\/[^ ]+?lc=[A-Za-z0-9-_]+|https:\/\/(www\.)?youtube\.com\/watch\?v=[A-Za-z0-9-_]+&lc=[A-Za-z0-9-_]+/g;
+const REGEX =
+    /https:\/\/(www\.)?youtube\.com\/(post|shorts)\/[^ ]+?lc=[A-Za-z0-9-_]+|https:\/\/(www\.)?youtube\.com\/watch\?v=[A-Za-z0-9-_]+&lc=[A-Za-z0-9-_]+/g;
 
 class YouTubeVideoCommentsPreviewGenerator {
     name = "youtube-video-comments";
@@ -12,13 +14,13 @@ class YouTubeVideoCommentsPreviewGenerator {
     scrapingClient;
 
     /**
-     * 
-     * @param {APIClient} client 
+     *
+     * @param {APIClient} client
      */
-    
+
     constructor(client) {
         this.scrapingClient = client;
-        this.apiClient = new YouTubeClient({key: process.env.YOUTUBE_API_KEY});
+        this.apiClient = new YouTubeClient({ key: process.env.YOUTUBE_API_KEY });
     }
 
     async generate(match) {
@@ -38,11 +40,9 @@ class YouTubeVideoCommentsPreviewGenerator {
         if (!comment) return null;
         return {
             message: {
-                embeds: [
-                    apiCommentToEmbed(comment)
-                ]
-            }
-        }
+                embeds: [apiCommentToEmbed(comment)],
+            },
+        };
     }
 }
 
@@ -55,10 +55,10 @@ function apiCommentToEmbed(comment) {
             iconURL: snippet.authorProfileImageUrl,
             url: `https://www.youtube.com/channel/${snippet.authorChannelId.value}`,
         })
-        .setColor(0xFF0000)
+        .setColor(0xff0000)
         .setFooter({
             text: "ID: " + comment.id,
-            iconURL: "https://www.youtube.com/img/favicon_144.png"
+            iconURL: "https://www.youtube.com/img/favicon_144.png",
         });
 }
 
@@ -73,7 +73,6 @@ class YouTubeShortsCommentsPreviewGenerator {
         this.client = client;
     }
 
-
     async generate(match) {
         if (!match.includes("shorts")) return null;
 
@@ -84,8 +83,7 @@ class YouTubeShortsCommentsPreviewGenerator {
 
         if (!videoId || !commentId) return null;
 
-        const result = await this.client.short(videoId, commentId)
-            .fetchComments();
+        const result = await this.client.short(videoId, commentId).fetchComments();
 
         const comments = result._unsafeUnwrap();
 
@@ -95,10 +93,8 @@ class YouTubeShortsCommentsPreviewGenerator {
 
         return {
             message: {
-                embeds: [
-                    commentToEmbed(comment)
-                ]
-            }
+                embeds: [commentToEmbed(comment)],
+            },
         };
     }
 }
@@ -124,8 +120,7 @@ class YouTubePostCommentsPreviewGenerator {
 
         if (!postId || !commentId) return null;
 
-        const result = await this.client.post(postId, commentId)
-            .fetchComments();
+        const result = await this.client.post(postId, commentId).fetchComments();
 
         const comments = result._unsafeUnwrap();
 
@@ -135,10 +130,8 @@ class YouTubePostCommentsPreviewGenerator {
 
         return {
             message: {
-                embeds: [
-                    commentToEmbed(comment)
-                ]
-            }
+                embeds: [commentToEmbed(comment)],
+            },
         };
     }
 }
@@ -151,38 +144,32 @@ function commentToEmbed(comment) {
             url: `https://www.youtube.com/channel/${comment.author.id}`,
         })
         .setDescription(comment.content)
-        .setColor(0xFF0000)
+        .setColor(0xff0000)
         .setFooter({
             text: "ID: " + comment.id,
-            iconURL: "https://www.youtube.com/img/favicon_144.png"
-        })
+            iconURL: "https://www.youtube.com/img/favicon_144.png",
+        });
 }
 
-class YouTubeCommentPreview {
+export class YouTubeCommentPreview {
     name = "youtube-comments";
     client;
-    
-    constructor(
-        client
-    ) {
+
+    constructor(client) {
         this.client = client;
         this.generators = [
             new YouTubeVideoCommentsPreviewGenerator(client),
             new YouTubeShortsCommentsPreviewGenerator(client),
-            new YouTubePostCommentsPreviewGenerator(client)
-        ]
+            new YouTubePostCommentsPreviewGenerator(client),
+        ];
     }
-    
+
     match(content) {
-        const matches = [...content.matchAll(REGEX)].map(m => typeof m === "string" ? m : m[0]);
+        const matches = [...content.matchAll(REGEX)].map((m) => (typeof m === "string" ? m : m[0]));
         return matches;
     }
 
     async init() {
         await this.client.init();
     }
-}
-
-module.exports = {
-    YouTubeCommentPreview
 }
