@@ -1,13 +1,14 @@
-import { EmbedBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from "discord.js";
+import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 import { AmiAmiApiClient } from "./amiami-api.js";
 import { AmiAmiFallbackClient } from "./amiami-fallback.js";
 import { CurrencyApi } from "../currencyapi.js";
 import { Cache } from "../cache.js";
+import process from "node:process";
 
 /**
  * Matches item links for AmiAmi; the returned matches are of the form "scode=code" or "gcode=code".
  */
-const AMIAMI_ITEM_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?)([sg]code)\=([A-Za-z0-9\-]+)/g;
+const AMIAMI_ITEM_REGEX = /(?<=amiami\.com\/eng\/detail(\/)?\?)([sg]code)=([A-Za-z0-9-]+)/g;
 
 /**
  * Used to convert the price of an item from JPY to USD inside {@link AmiAmiApiPreview}.
@@ -18,7 +19,6 @@ const currencyApi = new CurrencyApi();
  * This is scoped outside {@link AmiAmiFallbackPreview} so {@link AmiAmiApiPreview} can access it as well.
  */
 const amiamiFallbackClient = new AmiAmiFallbackClient();
-
 
 /**
  * Generates a preview of an item in AmiAmi.
@@ -32,9 +32,7 @@ class AmiAmiApiPreview {
 
     #cache = new Cache();
 
-    constructor(
-        options
-    ) {
+    constructor(options) {
         this.#client = new AmiAmiApiClient(options);
     }
 
@@ -47,7 +45,7 @@ class AmiAmiApiPreview {
         this.#cache.set(`${codeType}=${code}`, item);
         return item;
     }
-    
+
     /**
      * @param {string} match
      * @returns {  }
@@ -62,7 +60,10 @@ class AmiAmiApiPreview {
             throw new Error("Item has no code!");
         }
 
-        if (code.startsWith("FIGURE-")) await amiamiFallbackClient.insert(Number(code.split("-")[1]), item.quarter, code.endsWith("-R")).catch(console.error);
+        if (code.startsWith("FIGURE-"))
+            await amiamiFallbackClient
+                .insert(Number(code.split("-")[1]), item.quarter, code.endsWith("-R"))
+                .catch(console.error);
 
         let description = "";
         if (typeof item.price === "number") {
@@ -75,14 +76,13 @@ class AmiAmiApiPreview {
         }
 
         if (item.saleStatus) {
-            description += `\n**Status**: ${item.saleStatus} ${item.orderable() === undefined ? "" : !item.orderable() ? "(Out of stock)" : ""}`
+            description += `\n**Status**: ${item.saleStatus} ${item.orderable() === undefined ? "" : !item.orderable() ? "(Out of stock)" : ""}`;
         }
 
         if (item.regionLocked()) {
             description += "⚠️ This item may not be available in all regions.";
         }
 
-        
         let footerText = `Price in USD based on a conversion rate of 1 USD ≈ ${currencyApi.conversionRate.toFixed(2)} JPY.`;
         if (item.partial) {
             footerText = "⚠️ API only partially available, information may be incomplete · " + footerText;
@@ -102,7 +102,7 @@ class AmiAmiApiPreview {
         if (description.length > 0) {
             embed.setDescription(description);
         }
-        
+
         if (item.spec && item.spec.length > 0) {
             embed.addFields({
                 name: "\u200b",
@@ -112,7 +112,7 @@ class AmiAmiApiPreview {
 
         return {
             message: {
-                embeds: [embed]
+                embeds: [embed],
             },
             images: item.images.length,
         };
@@ -144,9 +144,7 @@ class AmiAmiFallbackPreview {
 
         return {
             message: {
-                files: [
-                    new AttachmentBuilder(imageBuffer, { name: `${code}.jpg` }),
-                ],
+                files: [new AttachmentBuilder(imageBuffer, { name: `${code}.jpg` })],
                 embeds: [
                     new EmbedBuilder()
                         .setURL(`https://www.amiami.com/eng/detail?gcode=${code}`)
@@ -155,12 +153,12 @@ class AmiAmiFallbackPreview {
                         .setColor("#f68329")
                         .setFooter({
                             iconURL: process.env.AMIAMI_FAVICON_URL ?? "https://www.amiami.com/favicon.png",
-                            text: "⚠️ API request failed, so further details are missing."
+                            text: "⚠️ API request failed, so further details are missing.",
                         }),
-                ]
+                ],
             },
             images: 1,
-        }
+        };
     }
 
     async healthCheck() {
@@ -175,7 +173,7 @@ const apiPreview = new AmiAmiApiPreview({
 
 /**
  * Generates a preview of an item in AmiAmi.
- * 
+ *
  * @see {@link AmiAmiApiPreview}
  * @see {@link AmiAmiFallbackPreview}
  */
@@ -191,13 +189,10 @@ export const AmiAmiPreview = {
     match(content) {
         const matches = content.matchAll(AMIAMI_ITEM_REGEX);
 
-        return [...matches].map(match => match[0]);
+        return [...matches].map((match) => match[0]);
     },
 
-    generators: [
-        apiPreview,
-        new AmiAmiFallbackPreview(),
-    ],
+    generators: [apiPreview, new AmiAmiFallbackPreview()],
     async init() {
         await amiamiFallbackClient.init();
         await currencyApi.ready;
@@ -206,7 +201,7 @@ export const AmiAmiPreview = {
     /**
      * @param {string} id
      * @param {number} imageNo
-     * 
+     *
      * @returns { Promise<{ image: string | null, totalImages: number }> }
      */
     async getImage(id, imageNo) {
@@ -214,13 +209,13 @@ export const AmiAmiPreview = {
         const item = await apiPreview.fetch(codeType, code);
         if (!item) return null;
 
-        const images = item.images
+        const images = item.images;
 
         const image = imageNo === 0 ? item.image : images[imageNo - 1];
 
         return {
             image,
             totalImages: images.length + 1,
-        }
-    }
-}
+        };
+    },
+};

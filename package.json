@@ -1,21 +1,32 @@
 {
-  "name": "preview-bot",
-  "version": "1.0.0",
-  "description": "",
-  "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "start": "node src/index.js"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@atproto/api": "^0.13.12",
-    "@sireatsalot/youtube.js": "github:Mampfinator/youtube.js",
-    "axios": "^1.6.8",
-    "discord.js": "^14.22.1",
-    "dotenv": "^16.4.5",
-    "https": "^1.0.0",
-    "sqlite3": "^5.1.7"
-  }
+    "name": "preview-bot",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "lint:check": "npx eslint",
+        "lint:fix": "npx eslint --fix",
+        "format:check": "npx prettier --check .",
+        "format:write": "npx prettier --write ."
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@atproto/api": "^0.13.12",
+        "@sireatsalot/youtube.js": "github:Mampfinator/youtube.js",
+        "axios": "^1.6.8",
+        "discord.js": "^14.22.1",
+        "dotenv": "^16.4.5",
+        "https": "^1.0.0",
+        "sqlite3": "^5.1.7"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.36.0",
+        "eslint": "^9.36.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^16.4.0",
+        "prettier": "^3.6.2"
+    }
 }

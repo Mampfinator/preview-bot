@@ -1,24 +1,31 @@
 import "dotenv/config";
 
-import { Client, IntentsBitField, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, Partials } from "discord.js";
+import {
+    Client,
+    IntentsBitField,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    Partials,
+} from "discord.js";
 import { AmiAmiPreview } from "./amiami/index.js";
 import { youTubeCommunityPostPreview, youTubeCommentPreview } from "./youtube/index.js";
 import { BlueskyPreview } from "./bluesky/index.js";
 import { registerContextInteractions } from "./context-interaction.js";
 import { DebugPreviewGroup } from "./debug-preview.js";
+import process from "node:process";
 
 const { Flags: IntentsFlags } = IntentsBitField;
 
 const client = new Client({
     intents: [
-        IntentsFlags.Guilds, 
-        IntentsFlags.GuildMessages, 
-        IntentsFlags.MessageContent, 
+        IntentsFlags.Guilds,
+        IntentsFlags.GuildMessages,
+        IntentsFlags.MessageContent,
         IntentsFlags.DirectMessages,
     ],
-    partials: [
-        Partials.Channel,
-    ]
+    partials: [Partials.Channel],
 });
 
 class ClientPreviews {
@@ -42,13 +49,13 @@ class ClientPreviews {
     }
 
     /**
-     * 
+     *
      * @param {string} content
-     * @returns {AsyncGenerator<import("discord.js").MessageCreateOptions>} 
+     * @returns {AsyncGenerator<import("discord.js").MessageCreateOptions>}
      */
     async *generateFromContent(content) {
         for (const group of this.previewProviders) {
-            // Dedupe matches. Messages may contain the same item multiple times, 
+            // Dedupe matches. Messages may contain the same item multiple times,
             // but we only want to preview it once.
             const matches = new Set(group.match(content));
             matches: for (const match of matches) {
@@ -61,7 +68,7 @@ class ClientPreviews {
                         if (!messageContent) continue;
 
                         if (images && images > 1) {
-                            const components = messageContent.components ??= [];
+                            const components = (messageContent.components ??= []);
 
                             const row = new ActionRowBuilder();
 
@@ -70,7 +77,7 @@ class ClientPreviews {
                                     new ButtonBuilder()
                                         .setCustomId(`${group.name}:${match}:${images - 1}`)
                                         .setEmoji("◀️")
-                                        .setStyle(ButtonStyle.Secondary)
+                                        .setStyle(ButtonStyle.Secondary),
                                 );
                             }
 
@@ -78,7 +85,7 @@ class ClientPreviews {
                                 new ButtonBuilder()
                                     .setCustomId(`${group.name}:${match}:${1}`)
                                     .setEmoji("▶️")
-                                    .setStyle(ButtonStyle.Secondary)
+                                    .setStyle(ButtonStyle.Secondary),
                             );
 
                             components.push(row);
@@ -100,7 +107,7 @@ class ClientPreviews {
                                         .setTimestamp()
                                         .setFooter({ text: `Part ${i + 1} of ${errorChunks.length}` });
 
-                                        await owner.send({ embeds: [embed] }).catch(console.error);
+                                    await owner.send({ embeds: [embed] }).catch(console.error);
                                 }
                             }
                         }
@@ -121,22 +128,16 @@ function splitIntoChunks(string, chunkSize) {
     return chunks;
 }
 
-const previewProviders = [
-    AmiAmiPreview,
-    youTubeCommunityPostPreview,
-    youTubeCommentPreview,
-    BlueskyPreview,
-]
+const previewProviders = [AmiAmiPreview, youTubeCommunityPostPreview, youTubeCommentPreview, BlueskyPreview];
 
 client.previews = new ClientPreviews(client, previewProviders);
-
 
 if (process.env.NODE_ENV !== "production") {
     client.previews.previewProviders.push(new DebugPreviewGroup(client.previews));
 } else {
     const debugPreview = new DebugPreviewGroup(client.previews);
 
-    client.on("messageCreate", async message => {
+    client.on("messageCreate", async (message) => {
         if (message.inGuild()) return;
         if (message.author.id !== process.env.BOT_OWNER_ID) return;
 
@@ -146,23 +147,23 @@ if (process.env.NODE_ENV !== "production") {
             const { message: reply } = await debugPreview.generators[0].generate(match);
             await message.reply(reply);
         }
-    })
+    });
 }
 
-client.on("messageCreate", async message => {
+client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
     for await (const preview of client.previews.generateFromContent(message.content)) {
-        await message.reply({...preview, allowedMentions: { parse: []}}).catch(console.error);
+        await message.reply({ ...preview, allowedMentions: { parse: [] } }).catch(console.error);
     }
-})
+});
 
-client.on("interactionCreate", async interaction => {
+client.on("interactionCreate", async (interaction) => {
     if (!interaction.isButton()) return;
 
     const [service, id, imageNoStr] = interaction.customId.split(":");
 
-    const preview = client.previews.previewProviders.find(g => g.name === service);
+    const preview = client.previews.previewProviders.find((g) => g.name === service);
     if (!preview) {
         await interaction.reply({ content: "Unknown service.", ephemeral: true }).catch(console.error);
         return;
@@ -187,34 +188,34 @@ client.on("interactionCreate", async interaction => {
 
     if (totalImages > 2) {
         components.push(
-            new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`${service}:${id}:${imageNo === 0 ? totalImages - 1 : imageNo - 1 }`)
-                        .setEmoji("◀️")
-                        .setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder()
-                        .setCustomId(`${service}:${id}:${imageNo === totalImages - 1 ? 0 : imageNo + 1 }`)
-                        .setEmoji("▶️")
-                        .setStyle(ButtonStyle.Secondary),
-                )
+            new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`${service}:${id}:${imageNo === 0 ? totalImages - 1 : imageNo - 1}`)
+                    .setEmoji("◀️")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`${service}:${id}:${imageNo === totalImages - 1 ? 0 : imageNo + 1}`)
+                    .setEmoji("▶️")
+                    .setStyle(ButtonStyle.Secondary),
+            ),
         );
     } else if (totalImages === 2) {
         components.push(
-            new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`${service}:${id}:${imageNo === 0 ? 1 : 0 }`)
-                        .setEmoji(imageNo === 0 ? "▶️" : "◀️")
-                        .setStyle(ButtonStyle.Secondary)
-                )
+            new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`${service}:${id}:${imageNo === 0 ? 1 : 0}`)
+                    .setEmoji(imageNo === 0 ? "▶️" : "◀️")
+                    .setStyle(ButtonStyle.Secondary),
+            ),
         );
     }
 
-    await interaction.update({ 
-        embeds: [embed.setImage(image)], 
-        components
-    }).catch(console.error);
+    await interaction
+        .update({
+            embeds: [embed.setImage(image)],
+            components,
+        })
+        .catch(console.error);
 });
 
 async function main() {

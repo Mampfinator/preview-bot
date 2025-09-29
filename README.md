@@ -7,6 +7,7 @@ Click [here](https://discord.com/oauth2/authorize?client_id=1233459980976521216)
 # Examples
 
 ## AmiAmi
+
 <details>
 <summary>With API access</summary>
     
@@ -17,6 +18,7 @@ Click [here](https://discord.com/oauth2/authorize?client_id=1233459980976521216)
 <summary>Fallback</summary>
 
 ![Fallback preview embed](docs/amiami_fallback_preview.png)
+
 </details>
 
 ## YouTube
@@ -25,6 +27,7 @@ Click [here](https://discord.com/oauth2/authorize?client_id=1233459980976521216)
 <summary>Image posts</summary>
 
 ![Image preview embed](docs/youtube_image_preview.png)
+
 </details>
 
 <details>
@@ -33,9 +36,8 @@ Click [here](https://discord.com/oauth2/authorize?client_id=1233459980976521216)
 > ⚠️ Quiz posts do not currently have a way to display the correct answer.
 
 ![Poll preview embed](docs/youtube_poll_preview.png)
+
 </details>
-
-
 
 ## Contributing
 

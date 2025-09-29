@@ -3,10 +3,10 @@ import https from "https";
 
 /**
  * Attempt to recover whatever we can from a broken JSON string.
- * 
+ *
  * The algorithm is dead simple, and only cares about closing unmatched brackets and quotes, as well
  * as removing trailing commas and deleting a dangling property name.
- * 
+ *
  * @param {string} data
  * @returns {string}
  */
@@ -17,7 +17,7 @@ function fixJson(data) {
     }
 
     // remove trailing incomplete `null`s
-    data = data.replace(/(?<!=\")nu?l?(?=\}*$)/, "null");
+    data = data.replace(/(?<!=")nu?l?(?=\}*$)/, "null");
 
     /**
      * @type { Record<string, number[]>}
@@ -25,7 +25,7 @@ function fixJson(data) {
     const seen = {
         "{": [],
         "[": [],
-        "\"": []
+        '"': [],
     };
 
     const closing = {
@@ -33,13 +33,13 @@ function fixJson(data) {
         "]": "[",
     };
 
-    const inString = () => seen["\""].length > 0;
+    const inString = () => seen['"'].length > 0;
 
     let openDeclaration = true;
     let isAssignment = false;
 
     const opening = Object.fromEntries(Object.entries(closing).map(([key, value]) => [value, key]));
-    opening["\""] = "\"";
+    opening['"'] = '"';
     let escaped = false;
 
     for (let i = 0; i < data.length; i++) {
@@ -52,54 +52,53 @@ function fixJson(data) {
 
         if (!inString()) {
             if (char === ":" && !inString()) {
-                isAssignment = true; 
-            // object and array termination
+                isAssignment = true;
+                // object and array termination
             } else if (char === ",") {
                 isAssignment = false;
             } else if (char in closing) {
-                const openingChar = closing[char]
+                const openingChar = closing[char];
                 seen[openingChar].shift();
                 isAssignment = false;
-            // object, array and string start
+                // object, array and string start
             } else if (char in seen) {
-                if (char === "\"" && !isAssignment) {
+                if (char === '"' && !isAssignment) {
                     openDeclaration = true;
                 }
                 seen[char].unshift(i);
             }
-        // string termination
-        } else if (char === "\"") {
-            seen["\""].shift();
+            // string termination
+        } else if (char === '"') {
+            seen['"'].shift();
             if (openDeclaration) {
                 openDeclaration = false;
             }
-        // escape character
+            // escape character
         } else if (char === "\\") {
             escaped = true;
         }
     }
 
-    // if we started a property declaration and didn't finish it, 
-    // *or* if we finished writing out the property name, but never got any value for it at all, 
+    // if we started a property declaration and didn't finish it,
+    // *or* if we finished writing out the property name, but never got any value for it at all,
     // remove it.
     if (openDeclaration || !isAssignment) {
-        seen["\""].shift();
+        seen['"'].shift();
         data = data.replace(/,["a-zA-Z_-]+$/, "");
     }
 
-    // in very rare cases, a string might end with an invalid unicode escape sequence 
+    // in very rare cases, a string might end with an invalid unicode escape sequence
     // (like FIGURE-178121, which ends with just `\u`) and thus causes the default JSON parser to throw.
     data = data.replace(/\\u[A-Za-z0-9]{0,3}$/, "");
-    
+
     // Very rarely (like with FIGURE-157860-R), we get a dangling property name that also happens to have the assignment operator at the end.
     // Our default case for dangling properties doesn't seem to handle that, so we add a special case for it here, since it's
     // easy enough to handle with regex alone.
-    data = data.replace(/,\"[A-Za-z0-9-_]+\"\:$/, "");
+    data = data.replace(/,"[A-Za-z0-9-_]+":$/, "");
 
     const closeWith = Object.entries(seen)
-        .map(([char, indices]) => indices.
-            map(idx => [idx, char])
-        ).flat()
+        .map(([char, indices]) => indices.map((idx) => [idx, char]))
+        .flat()
         .sort(([a], [b]) => b - a)
         .map(([, char]) => opening[char]);
 
@@ -113,7 +112,7 @@ function fixJson(data) {
 export class AmiAmiApiClient {
     /**
      * Used to make requests to the AmiAmi API.
-     * 
+     *
      * @type {import("axios").AxiosInstance}
      */
     #instance;
@@ -124,7 +123,7 @@ export class AmiAmiApiClient {
      * @param {string} [options.version] API version to use. Defaults to "v1.0" (current).
      */
     constructor(options) {
-        const domain = options?.domain ?? "api.amiami.com"
+        const domain = options?.domain ?? "api.amiami.com";
         const version = options?.version ?? "v1.0";
 
         const url = `https://${domain}/api/${version}/`;
@@ -145,12 +144,11 @@ export class AmiAmiApiClient {
         });
     }
 
-
     /**
      * Fetch an item from the API.
-     * 
-     * @param {string} code 
-     * @param {"scode" | "gcode"} codeType 
+     *
+     * @param {string} code
+     * @param {"scode" | "gcode"} codeType
      * @returns { Promise<Item | null> } The item, or null if it doesn't exist.
      */
     async item(code, codeType = "gcode") {
@@ -158,8 +156,8 @@ export class AmiAmiApiClient {
             const response = await this.#instance.get(`/item`, {
                 params: {
                     [codeType]: code,
-                    lang: "eng"
-                }
+                    lang: "eng",
+                },
             });
 
             const data = response.data;
@@ -167,7 +165,7 @@ export class AmiAmiApiClient {
             // sometimes (especially when normal API access is blocked) we get a
             // **partial** response with an incomplete JSON string back.
             // `fixJson` will attempt to fix up what we have and make it valid JSON.
-            // Especially the last field 
+            // Especially the last field
             if (typeof data === "string") {
                 const fixed = fixJson(data);
                 try {
@@ -184,11 +182,11 @@ export class AmiAmiApiClient {
 
             // Potentially, we could get a partial response without an image in the item object.
             // In that case, there is probably no usable data in the response at all, so
-            // we force the fallback client to take over. 
+            // we force the fallback client to take over.
             if (!item.image) {
                 throw new Error("Item does not have an image. Forcing fallback client.");
             }
-            
+
             return item;
         } catch (error) {
             if (!(error instanceof axios.AxiosError)) throw error;
@@ -205,7 +203,7 @@ export class AmiAmiApiClient {
 
     async healthy() {
         try {
-            const response = await this.#instance.get("");
+            await this.#instance.get("");
         } catch (error) {
             if (!(error instanceof axios.AxiosError)) throw error;
             const { response } = error;
@@ -256,7 +254,7 @@ export class Item {
 
     /**
      * Whether an item is unavailable in any regions.
-     * 
+     *
      * This currently only works for items requested in English.
      */
     regionLocked() {
@@ -276,11 +274,13 @@ export class Item {
             return 0;
         }
 
-        return this.#item.discountrate1 +
+        return (
+            this.#item.discountrate1 +
             this.#item.discountrate2 +
-            this.#item.discountrate3 + 
+            this.#item.discountrate3 +
             this.#item.discountrate4 +
-            this.#item.discountrate5;
+            this.#item.discountrate5
+        );
     }
 
     /**
@@ -296,21 +296,21 @@ export class Item {
      * @type { "Released" | "Pre-Order" | undefined }
      */
     get saleStatus() {
-        return this.#item.salestatus
+        return this.#item.salestatus;
     }
 
     /**
      * The (English) name of the item.
-     * 
+     *
      * @type {string}
      */
     get name() {
-        return this.#item.sname_simple
+        return this.#item.sname_simple;
     }
 
     /**
      * The full price with taxes and all discounts applied.
-     * 
+     *
      * @type { number | undefined }
      */
     get fullPrice() {
@@ -319,7 +319,7 @@ export class Item {
 
     /**
      * The base price for this item.
-     * 
+     *
      * @type { number | undefined }
      */
     get price() {
@@ -339,7 +339,7 @@ export class Item {
 
     /**
      * The quarter this item was added to the catalog.
-     * 
+     *
      * This is mainly used for fallback previews.
      */
     get quarter() {
@@ -355,6 +355,6 @@ export class Item {
         // The preview image URLs are structured like https://img.amiami.com/images/product/review/:quarter/:gcode_:n.jpg
         // where `:n` is a (0-padded, 2 digit) number starting from 1.
 
-        return this.#embedded?.review_images.map(image => `https://img.amiami.com/${image.image_url}`) ?? [];
+        return this.#embedded?.review_images.map((image) => `https://img.amiami.com/${image.image_url}`) ?? [];
     }
 }
