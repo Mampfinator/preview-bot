@@ -35,10 +35,10 @@ export class AmiAmiFallbackClient {
      */
     async getImage(rawCode) {
         try {
-            const [{ quarter, code, prewoned }, buffer] = await guesstimateQuarter(this.#db, rawCode);
+            const [{ quarter, code, preowned }, buffer] = await guesstimateQuarter(this.#db, rawCode);
             if (!buffer) return null;
 
-            await this.insert(code, quarter, prewoned);
+            await this.insert(code, quarter, preowned);
             return buffer;
         } catch (error) {
             console.error(error);
