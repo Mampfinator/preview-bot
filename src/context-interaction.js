@@ -24,12 +24,8 @@ export function registerContextInteractions(client) {
         let sentAny = false;
 
         for await (const message of client.previews.generateFromContent(interaction.targetMessage.content)) {
-            if (!interaction.deferred && !interaction.replied) {
-                await interaction.editReply({ ...message }).catch(console.error);
-                sentAny = true;
-            } else {
-                await interaction.followUp({ ...message, flags }).catch(console.error);
-            }
+            sentAny = true;
+            await interaction.followUp({ ...message, flags }).catch(console.error);
         }
 
         if (!sentAny) {
