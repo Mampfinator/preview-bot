@@ -65,6 +65,18 @@ class CommunityPostPreviewGenerator {
     }
 }
 
+function isShortenedUrl(text, url) {
+    for (let i = 0; i < url.length; i++) {
+        if (text[i] !== url[i]) {
+            if (text.slice(i, url.length) === "...") {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+}
+
 /**
  * Converts a Community Post into an {@link EmbedBuilder}.
  * @param { import("@sireatsalot/youtube.js").CommunityPost } post
@@ -84,7 +96,19 @@ export function postToEmbed(post, channel) {
     let embedContent;
 
     if (content && content.length > 0)
-        embedContent = content.map(({ text, url }) => `${url ? "[" : ""}${text}${url ? `](${url})` : ""}`).join(" ");
+        embedContent = content.map(({ text, url }) => {
+            if (url) {
+                // Discord prevents masking links with another link, but YouTube sometimes shortens URLs.
+                // So we need to check for that and return the original URL instead.
+                // Of course, if YouTube didn't shorten the URL, we still can't mask it. But that's easy to check for.
+                if (url == text || isShortenedUrl(text, url)) {
+                    return url;
+                } else {
+                    return `[${text}](${url})`;
+                }
+            }
+            return text;
+        }).join(" ");
 
     embed
         .setURL(`https://youtube.com/post/${postId}`)
