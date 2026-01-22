@@ -1,4 +1,4 @@
-export class Cache extends Map {
+export class CacheMap extends Map {
     #interval;
 
     // an hour, because most services have pretty strict API limits.

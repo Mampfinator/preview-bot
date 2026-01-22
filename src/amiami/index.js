@@ -2,7 +2,7 @@ import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 import { AmiAmiApiClient } from "./amiami-api.js";
 import { AmiAmiFallbackClient } from "./amiami-fallback.js";
 import { CurrencyApi } from "../currencyapi.js";
-import { Cache } from "../cache.js";
+import { CacheMap } from "../cache.js";
 import process from "node:process";
 
 /**
@@ -30,7 +30,7 @@ class AmiAmiApiPreview {
      */
     #client;
 
-    #cache = new Cache();
+    #cache = new CacheMap();
 
     constructor(options) {
         this.#client = new AmiAmiApiClient(options);

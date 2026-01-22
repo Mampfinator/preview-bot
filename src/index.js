@@ -14,6 +14,7 @@ import { youTubeCommunityPostPreview, youTubeCommentPreview } from "./youtube/in
 import { BlueskyPreview } from "./bluesky/index.js";
 import { registerContextInteractions } from "./context-interaction.js";
 import { DebugPreviewGroup } from "./debug-preview.js";
+import { CacheMap } from "./cache.js";
 import process from "node:process";
 
 const { Flags: IntentsFlags } = IntentsBitField;
@@ -29,6 +30,8 @@ const client = new Client({
 });
 
 class PreviewManager {
+    cache = new CacheMap();
+
     /**
      * @type { Client }
      */
@@ -59,6 +62,10 @@ class PreviewManager {
             // but we only want to preview it once.
             const matches = new Set(group.match(content));
             matches: for (const match of matches) {
+                if (this.cache.has(match)) {
+                    yield this.cache.get(match);
+                    continue;
+                }
                 for (const generator of group.generators) {
                     try {
                         const preview = await generator.generate(match);
@@ -90,6 +97,8 @@ class PreviewManager {
 
                             components.push(row);
                         }
+
+                        this.cache.set(match, messageContent);
 
                         yield messageContent;
                         // we take the first result for every match.

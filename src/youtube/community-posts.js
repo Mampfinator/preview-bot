@@ -1,7 +1,7 @@
 import { ScrapingClient, AttachmentType, DataExtractors } from "@sireatsalot/youtube.js";
 import { EmbedBuilder } from "discord.js";
 import { unwrap } from "../util.js";
-import { Cache } from "../cache.js";
+import { CacheMap } from "../cache.js";
 
 const postIdRegex = /(?<=youtube.com\/post\/)Ug[A-z0-9_-]+|(?<=youtube.com\/channel\/.+\/community\?lb=)Ug[A-z0-9_-]+/g;
 
@@ -9,7 +9,7 @@ class CommunityPostPreviewGenerator {
     name = "youtube-community-posts";
     #client = new ScrapingClient();
 
-    #cache = new Cache();
+    #cache = new CacheMap();
 
     /**
      * @param {string} match
