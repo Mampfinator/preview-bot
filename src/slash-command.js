@@ -6,7 +6,6 @@ import {
     SlashCommandBuilder,
 } from "discord.js";
 
-
 /**
  * Registers `/preview` and `/private-preview` slash commands and their handler.
  * @param {import("discord.js").Client} client
@@ -25,10 +24,9 @@ export function registerSlashCommandInteractions(client) {
 
         if (sendLinks) {
             await interaction.followUp({
-                content: links.replaceAll(" ", "\n")
+                content: links.replaceAll(" ", "\n"),
             });
         }
-
 
         let sentAny = false;
 
@@ -53,15 +51,29 @@ export function registerSlashCommandInteractions(client) {
 const command = new SlashCommandBuilder()
     .setName("preview")
     .setDescription("Preview links.")
-    .addStringOption(links => links.setName("links").setDescription("Space separated links to preview..").setRequired(true))
-    .addBooleanOption(sendLinks => sendLinks.setName("send-links").setDescription("Whether to send the requested links in a separate message or not. Defaults to true.").setRequired(false))
+    .addStringOption((links) =>
+        links.setName("links").setDescription("Space separated links to preview..").setRequired(true),
+    )
+    .addBooleanOption((sendLinks) =>
+        sendLinks
+            .setName("send-links")
+            .setDescription("Whether to send the requested links in a separate message or not. Defaults to true.")
+            .setRequired(false),
+    )
     .setIntegrationTypes([ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall])
     .setContexts([InteractionContextType.BotDM, InteractionContextType.Guild, InteractionContextType.PrivateChannel]);
 
 const privateCommand = new SlashCommandBuilder()
     .setName("private-preview")
     .setDescription("Preview links, but private.")
-    .addStringOption(links => links.setName("links").setDescription("Space separated links to preview..").setRequired(true))
-    .addBooleanOption(sendLinks => sendLinks.setName("send-links").setDescription("Whether to send the requested links in a separate message first or not. Defaults to true.").setRequired(false))
+    .addStringOption((links) =>
+        links.setName("links").setDescription("Space separated links to preview..").setRequired(true),
+    )
+    .addBooleanOption((sendLinks) =>
+        sendLinks
+            .setName("send-links")
+            .setDescription("Whether to send the requested links in a separate message first or not. Defaults to true.")
+            .setRequired(false),
+    )
     .setIntegrationTypes([ApplicationIntegrationType.UserInstall, ApplicationIntegrationType.GuildInstall])
     .setContexts([InteractionContextType.BotDM, InteractionContextType.Guild, InteractionContextType.PrivateChannel]);
