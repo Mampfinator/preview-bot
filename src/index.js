@@ -15,6 +15,7 @@ import { BlueskyPreview } from "./bluesky/index.js";
 import { registerContextInteractions } from "./context-interaction.js";
 import { DebugPreviewGroup } from "./debug-preview.js";
 import process from "node:process";
+import { registerSlashCommandInteractions } from "./slash-command.js";
 
 const { Flags: IntentsFlags } = IntentsBitField;
 
@@ -225,6 +226,7 @@ async function main() {
     console.log(`Logged into Discord as ${client.user.tag}.`);
 
     registerContextInteractions(client);
+    registerSlashCommandInteractions(client);
 }
 
 main();
