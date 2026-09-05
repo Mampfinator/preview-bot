@@ -28,5 +28,8 @@
         "eslint-config-prettier": "^10.1.8",
         "globals": "^16.4.0",
         "prettier": "^3.6.2"
+    },
+    "allowScripts": {
+        "sqlite3@6.0.1": true
     }
 }
