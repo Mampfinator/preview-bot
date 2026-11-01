@@ -21,14 +21,13 @@ class CommunityPostPreviewGenerator {
          * @type { import("@sireatsalot/youtube.js").CommunityPost }
          */
         const post = await postScraper.getPost().then(unwrap);
-        const channel = await postScraper.getChannelData().then(unwrap);
 
         this.#cache.set(match, post);
 
         try {
             return {
                 message: {
-                    embeds: [postToEmbed(post, channel)],
+                    embeds: [postToEmbed(post)],
                 },
                 images: post.images?.length ?? 0,
             };
@@ -82,10 +81,10 @@ function isShortenedUrl(text, url) {
  * @param { import("@sireatsalot/youtube.js").CommunityPost } post
  * @param { import("@sireatsalot/youtube.js").ChannelData } channel
  */
-export function postToEmbed(post, channel) {
+export function postToEmbed(post) {
     const { content, attachmentType, id: postId } = post;
 
-    const { avatar, name, id: channelId } = channel;
+    const { avatar, name, id: channelId } = post.author;
 
     const embed = new EmbedBuilder().setAuthor({
         name,
