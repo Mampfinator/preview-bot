@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "@discordjs/builders";
 import { YouTubeClient } from "@sireatsalot/youtube.js";
+import { AttachmentBuilder } from "discord.js";
 import process from "node:process";
 
 // yes this is excessive.
@@ -38,18 +39,16 @@ class YouTubeVideoCommentsPreviewGenerator {
         const comment = comments.value[0];
 
         if (!comment) return null;
-        return {
-            message: {
-                embeds: [apiCommentToEmbed(comment)],
-            },
-        };
+
+        const message = apiCommentToPayload(comment);
+
+        return { message };
     }
 }
 
-function apiCommentToEmbed(comment) {
+function apiCommentToPayload(comment) {
     const { snippet } = comment;
-    return new EmbedBuilder()
-        .setDescription(snippet.textOriginal)
+    let embed = new EmbedBuilder()
         .setAuthor({
             name: `Comment by ${snippet.authorDisplayName}`,
             iconURL: snippet.authorProfileImageUrl,
@@ -60,6 +59,21 @@ function apiCommentToEmbed(comment) {
             text: "ID: " + comment.id,
             iconURL: "https://www.youtube.com/img/favicon_144.png",
         });
+
+    if (snippet.textOriginal?.lengh > 0) {
+        embed = embed.setDescription(snippet.textOriginal);
+    }
+
+    const payload = {};
+
+    if (snippet.imageUrl) {
+        payload.files = [new AttachmentBuilder(snippet.imageUrl).setName("attachment.webp")];
+        embed = embed.setImage(`attachment://attachment.webp`);
+    }
+
+    payload.embeds = [embed];
+
+    return payload;
 }
 
 class YouTubeShortsCommentsPreviewGenerator {
@@ -91,11 +105,9 @@ class YouTubeShortsCommentsPreviewGenerator {
 
         if (!comment) return null;
 
-        return {
-            message: {
-                embeds: [commentToEmbed(comment)],
-            },
-        };
+        const message = scrapedCommentToPayload(comment);
+
+        return { message }
     }
 }
 
@@ -128,27 +140,42 @@ class YouTubePostCommentsPreviewGenerator {
 
         if (!comment) return null;
 
-        return {
-            message: {
-                embeds: [commentToEmbed(comment)],
-            },
-        };
+        const message = scrapedCommentToPayload(comment);
+
+        { message }
     }
 }
 
-function commentToEmbed(comment) {
-    return new EmbedBuilder()
+function scrapedCommentToPayload(comment) {
+    const embed = new EmbedBuilder()
         .setAuthor({
             name: `Comment by ${comment.author.name}`,
             iconURL: comment.author.avatar,
             url: `https://www.youtube.com/channel/${comment.author.id}`,
         })
-        .setDescription(comment.content)
         .setColor(0xff0000)
         .setFooter({
             text: "ID: " + comment.id,
             iconURL: "https://www.youtube.com/img/favicon_144.png",
         });
+
+    if (comment.content?.length > 0) {
+        embed.setDescription(comment.content)
+    }
+
+    const payload = {};
+
+    if (comment.attachment) {
+        payload.files = [new AttachmentBuilder(comment.attachment)
+            .setName("attachment.webp")
+        ];
+
+        embed.setImage("attachment://attachment.webp");
+    }
+
+    payload.embeds = [embed];
+
+    return payload;
 }
 
 export class YouTubeCommentPreview {
