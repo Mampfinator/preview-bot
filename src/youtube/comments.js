@@ -48,7 +48,7 @@ class YouTubeVideoCommentsPreviewGenerator {
 
 function apiCommentToPayload(comment) {
     const { snippet } = comment;
-    let embed = new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setAuthor({
             name: `Comment by ${snippet.authorDisplayName}`,
             iconURL: snippet.authorProfileImageUrl,
@@ -60,15 +60,15 @@ function apiCommentToPayload(comment) {
             iconURL: "https://www.youtube.com/img/favicon_144.png",
         });
 
-    if (snippet.textOriginal?.lengh > 0) {
-        embed = embed.setDescription(snippet.textOriginal);
+    if (snippet.textOriginal?.length > 0) {
+        embed.setDescription(snippet.textOriginal);
     }
 
     const payload = {};
 
     if (snippet.imageUrl) {
         payload.files = [new AttachmentBuilder(snippet.imageUrl).setName("attachment.webp")];
-        embed = embed.setImage(`attachment://attachment.webp`);
+        embed.setImage(`attachment://attachment.webp`);
     }
 
     payload.embeds = [embed];
