@@ -1,5 +1,5 @@
 import { ScrapingClient, AttachmentType, DataExtractors } from "@sireatsalot/youtube.js";
-import { EmbedBuilder } from "discord.js";
+import { AttachmentBuilder, EmbedBuilder } from "discord.js";
 import { unwrap } from "../util.js";
 import { Cache } from "../cache.js";
 
@@ -26,9 +26,7 @@ class CommunityPostPreviewGenerator {
 
         try {
             return {
-                message: {
-                    embeds: [postToEmbed(post)],
-                },
+                message: postToPayload(post),
                 images: post.images?.length ?? 0,
             };
         } catch (error) {
@@ -81,7 +79,7 @@ function isShortenedUrl(text, url) {
  * @param { import("@sireatsalot/youtube.js").CommunityPost } post
  * @param { import("@sireatsalot/youtube.js").ChannelData } channel
  */
-export function postToEmbed(post) {
+export function postToPayload(post) {
     const { content, attachmentType, id: postId } = post;
 
     const { avatar, name, id: channelId } = post.author;
@@ -119,11 +117,17 @@ export function postToEmbed(post) {
             text: `ID: ${postId}`,
         });
 
+    let attachment;
+
     switch (attachmentType) {
         case AttachmentType.None:
             break;
         case AttachmentType.Image:
-            embed.setImage(post.images[0]);
+            // Images can be animated webp; *however* embedded animated webp from external sources do not play well with embeds.
+            // so we grab the image and upload it to Discord first.
+            attachment = new AttachmentBuilder(post.images[0]).setName("attachment.webp");
+
+            embed.setImage("attachment://attachment.webp");
             break;
         case AttachmentType.Video: {
             const { video } = post;
@@ -152,7 +156,15 @@ export function postToEmbed(post) {
 
     if (embedContent && embedContent.length > 0) embed.setDescription(embedContent);
 
-    return embed;
+    const payload = {
+        embeds: [embed],
+    }
+
+    if (attachment) {
+        payload.files = [attachment];
+    }
+
+    return payload;
 }
 
 export class YouTubeCommunityPostPreview {
