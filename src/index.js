@@ -8,6 +8,7 @@ import {
     ButtonBuilder,
     ButtonStyle,
     Partials,
+    AttachmentBuilder,
 } from "discord.js";
 import { AmiAmiPreview } from "./amiami/index.js";
 import { youTubeCommunityPostPreview, youTubeCommentPreview } from "./youtube/index.js";
@@ -173,7 +174,7 @@ client.on("interactionCreate", async (interaction) => {
 
     const imageNo = Number(imageNoStr);
 
-    const { image, totalImages } = await preview.getImage(id, imageNo);
+    let { image, totalImages } = await preview.getImage(id, imageNo);
 
     if (!image) {
         await interaction.reply({ content: "Failed to fetch image.", ephemeral: true }).catch(console.error);
@@ -212,11 +213,23 @@ client.on("interactionCreate", async (interaction) => {
         );
     }
 
+
+    const payload = {
+        components,
+    }
+
+    let attachment;
+    if (preview.name == "youtube-community-posts") {
+        // To get YouTube webp gifs to animate in embeds, we upload them to Discord directly.
+        attachment = new AttachmentBuilder().setFile(image).setName("image.webp");
+        image = "attachment://image.webp";
+        payload.files = [attachment];
+    }
+
+    payload.embeds = [embed.setImage(image)];
+
     await interaction
-        .update({
-            embeds: [embed.setImage(image)],
-            components,
-        })
+        .update(payload)
         .catch(console.error);
 });
 
